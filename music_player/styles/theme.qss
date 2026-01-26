@@ -1,0 +1,15 @@
+/* 全体のデフォルトフォント設定 */
+* {
+    font-family: 'Meiryo', 'Yu Gothic', sans-serif;
+    color: #e0e0e0;
+}
+
+QMainWindow {
+    background-color: #1a1a1a;
+}
+
+/* ドロップゾーンのラベルを少し強調 */
+QLabel#drop_label {
+    font-size: 16px;
+    font-weight: bold;
+}
