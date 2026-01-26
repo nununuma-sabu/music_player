@@ -72,6 +72,9 @@
     ```bash
     # プロジェクトルートで実行
     python3 -m pytest
+
+    # カバレッジを出力したい場合
+    python3 -m pytest --cov=core --cov-report=html tests/
     ```
 
 楽曲データを選択し、メタデータ取得までの流れ
