@@ -1,9 +1,8 @@
-import os
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel
 from .components.eq_slider import EqSlider
 from .components.player_controls import PlayerControls
 from .components.drop_zone import DropZone
-from mutagen import File as MutagenFile
+from core.metadata import extract_metadata
 
 
 class MainWindow(QMainWindow):
@@ -56,39 +55,18 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.controls)
 
     def _on_files_dropped(self, files):
+        """
+        ファイルが選択された際の処理
+        """
         for f in files:
-            try:
-                audio = MutagenFile(f)
-                if audio is None:
-                    continue
-                # デフォルト値（ファイル名）
-                title = os.path.basename(f)
-                artist = "Unknown Artist"
-                album = "Unknown Album"
-                composer = "Unknown Composer"
+            # ロジック部分を呼び出す
+            metadata = extract_metadata(f)
 
-                # 形式ごとのタグ取得ロジック
-                if hasattr(audio, "tags") and audio.tags is not None:
-                    tags = audio.tags
-
-                    # MP3 (ID3) の場合
-                    if f.lower().endswith(".mp3"):
-                        title = tags.get("TIT2", [title])[0]
-                        artist = tags.get("TPE1", [artist])[0]
-                        album = tags.get("TALB", [album])[0]
-
-                    # FLAC, Ogg, Opus (Vorbis Comment) の場合
-                    else:
-                        title = tags.get("title", [title])[0]
-                        artist = tags.get("artist", [artist])[0]
-                        album = tags.get("album", [album])[0]
-                        composer = tags.get("composer", [composer])[0]
-
-                duration = int(audio.info.length)
+            if metadata:
                 print(
-                    f"解析成功: {title} - {artist} [{album}] ({duration // 60}:{duration % 60})"
+                    f"解析成功: {metadata['title']} - {metadata['artist']} "
+                    f"[{metadata['album']}] ({metadata['duration']//60}:{metadata['duration']%60:02d})"
                 )
-                print(f"作曲: {composer}")
-
-            except Exception as e:
-                print(f"解析エラー ({os.path.basename(f)}): {e}")
+                print(f"作曲: {metadata['composer']}")
+            else:
+                print(f"解析失敗: {f}")
