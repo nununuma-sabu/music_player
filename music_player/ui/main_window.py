@@ -90,8 +90,10 @@ class MainWindow(QMainWindow):
 
     def _on_song_selected(self, file_path):
         """曲がダブルクリックされた時の処理"""
-        # 本来はここで再生エンジンにパスを渡すが、まずはログ出力
-        print(f"DEBUG: Selected for playback -> {file_path}")
+        # メタデータを取得
+        metadata = extract_metadata(file_path)
 
-        # 画面下部のコントロールバーなどに「再生中：〇〇」と出す準備
-        # 現在のプレイリストからメタデータを再検索して表示を更新するロジックをここに足す
+        if metadata:
+            # 下部のコントロールバーの表示を更新
+            self.controls.update_song_info(metadata["title"], metadata["artist"])
+            print(f"DEBUG: UI Updated for -> {metadata['title']}")
