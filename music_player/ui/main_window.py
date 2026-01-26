@@ -1,7 +1,9 @@
+import os
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel
 from .components.eq_slider import EqSlider
 from .components.player_controls import PlayerControls
 from .components.drop_zone import DropZone
+from mutagen import File as MutagenFile
 
 
 class MainWindow(QMainWindow):
@@ -55,5 +57,35 @@ class MainWindow(QMainWindow):
 
     def _on_files_dropped(self, files):
         for f in files:
-            print(f"Dropped: {f}")
-        # ここで将来的にプレイリストへの追加処理を行う
+            try:
+                audio = MutagenFile(f)
+                if audio is None:
+                    continue
+                # デフォルト値（ファイル名）
+                title = os.path.basename(f)
+                artist = "Unknown Artist"
+                album = "Unknown Album"
+
+                # 形式ごとのタグ取得ロジック
+                if hasattr(audio, "tags") and audio.tags is not None:
+                    tags = audio.tags
+
+                    # MP3 (ID3) の場合
+                    if f.lower().endswith(".mp3"):
+                        title = tags.get("TIT2", [title])[0]
+                        artist = tags.get("TPE1", [artist])[0]
+                        album = tags.get("TALB", [album])[0]
+
+                    # FLAC, Ogg, Opus (Vorbis Comment) の場合
+                    else:
+                        title = tags.get("title", [title])[0]
+                        artist = tags.get("artist", [artist])[0]
+                        album = tags.get("album", [album])[0]
+
+                duration = int(audio.info.length)
+                print(
+                    f"解析成功: {title} - {artist} [{album}] ({duration // 60}:{duration % 60})"
+                )
+
+            except Exception as e:
+                print(f"解析エラー ({os.path.basename(f)}): {e}")

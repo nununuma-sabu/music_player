@@ -1,17 +1,18 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel, QFileDialog
 from PySide6.QtCore import Qt, Signal
 
 
 class DropZone(QFrame):
-    # ファイルがドロップされた時にパスのリストを飛ばすシグナル
+    # 既存のシグナル（MainWindow側の変更を不要にするため名前は維持）
     filesDropped = Signal(list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setAcceptDrops(True)  # D&Dを許可
+        self.setAcceptDrops(True)  # D&Dも一応残しておくことは可能
         self.setMinimumHeight(150)
+        # クリック可能であることを示すためにカーソルを指の形にする
+        self.setCursor(Qt.PointingHandCursor)
 
-        # 見た目の設定（点線の枠など）
         self.setStyleSheet(
             """
             QFrame {
@@ -27,26 +28,48 @@ class DropZone(QFrame):
         )
 
         layout = QVBoxLayout(self)
-        self.label = QLabel("ここに音楽ファイルをドラッグ＆ドロップ")
+        # 文言を「クリックして選択」に変更
+        self.label = QLabel("クリックしてファイルを選択")
         self.label.setAlignment(Qt.AlignCenter)
+        self.label.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.label.setStyleSheet(
             """
-    color: #888; 
-    border: none; 
-    background: none; 
-    font-family: 'Meiryo', 'Yu Gothic', 'Microsoft YaHei', sans-serif;
-    font-size: 14px;
-"""
+            color: #888; 
+            border: none; 
+            background: none; 
+            font-family: 'Meiryo', 'Yu Gothic', 'Microsoft YaHei', sans-serif;
+            font-size: 14px;
+        """
         )
         layout.addWidget(self.label)
 
+    # --- クリックイベントの追加 ---
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            # ファイル選択ダイアログを表示
+            files, _ = QFileDialog.getOpenFileNames(
+                self,
+                "音楽ファイルを選択",
+                "",
+                "Audio Files (*.mp3 *.wav *.flac *.m4a);;All Files (*)",
+            )
+            if files:
+                # 取得したリストをシグナルで飛ばす
+                self.filesDropped.emit(files)
+
+    # 既存のD&Dイベントは残しておいても実害はありません
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
-            event.accept()
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
         else:
             event.ignore()
 
     def dropEvent(self, event):
-        # ドロップされたURLからローカルのファイルパスを抽出
         files = [u.toLocalFile() for u in event.mimeData().urls()]
         self.filesDropped.emit(files)
