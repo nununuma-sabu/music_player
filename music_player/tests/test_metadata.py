@@ -49,3 +49,11 @@ def test_extract_metadata_error():
     with patch("core.metadata.MutagenFile", side_effect=Exception("Read Error")):
         info = extract_metadata("invalid.mp3")
         assert info is None
+
+
+def test_extract_metadata_unrecognized_format():
+    # mutagenが例外を出さずに None を返す（未対応フォーマット等）ケースのテスト
+    # MutagenFile が None を返すようにモック
+    with patch("core.metadata.MutagenFile", return_value=None):
+        info = extract_metadata("unsupported.txt")
+        assert info is None
