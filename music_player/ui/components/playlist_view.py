@@ -1,11 +1,14 @@
 from PySide6.QtWidgets import QListWidget, QListWidgetItem
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 
 
 class PlaylistView(QListWidget):
     """
     プレイリストを表示するウィジェット
     """
+
+    # 曲が選択されたことを知らせる独自のシグナル（メタデータ辞書を渡す）
+    songSelected = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -34,6 +37,8 @@ class PlaylistView(QListWidget):
             }
         """
         )
+        # ダブルクリックイベントを内部メソッドに接続
+        self.itemDoubleClicked.connect(self._on_item_double_clicked)
 
     def add_song_item(self, metadata):
         """メタデータを受け取り、リストに行を追加する"""
@@ -45,3 +50,9 @@ class PlaylistView(QListWidget):
         item.setData(Qt.UserRole, metadata["file_path"])
 
         self.addItem(item)
+
+    def _on_item_double_clicked(self, item):
+        # アイテムからファイルパスを回収
+        file_path = item.data(Qt.UserRole)
+        # シグナルを発火して MainWindow へ通知
+        self.songSelected.emit(file_path)

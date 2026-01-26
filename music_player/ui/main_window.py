@@ -78,9 +78,20 @@ class MainWindow(QMainWindow):
         self.controls = PlayerControls()
         main_layout.addWidget(self.controls)
 
+        # プレイリストの選曲シグナルを接続
+        self.playlist_view.songSelected.connect(self._on_song_selected)
+
     def _on_files_dropped(self, files):
         for f in files:
             metadata = extract_metadata(f)
             if metadata:
                 self.playlist_manager.add_song(metadata)
                 self.playlist_view.add_song_item(metadata)
+
+    def _on_song_selected(self, file_path):
+        """曲がダブルクリックされた時の処理"""
+        # 本来はここで再生エンジンにパスを渡すが、まずはログ出力
+        print(f"DEBUG: Selected for playback -> {file_path}")
+
+        # 画面下部のコントロールバーなどに「再生中：〇〇」と出す準備
+        # 現在のプレイリストからメタデータを再検索して表示を更新するロジックをここに足す
