@@ -51,7 +51,7 @@
 ## 🚀 セットアップ
 ```bash
 # リポジトリのクローン
-git clone [https://github.com/your-username/music_player.git](https://github.com/your-username/music_player.git)
+git clone https://github.com/nununuma-sabu/music_player.git
 cd music_player
 
 # 依存ライブラリのインストール
@@ -59,3 +59,20 @@ pip install -r requirements.txt
 
 # アプリケーションの起動
 python main.py
+```
+
+## 🐧 WSL2 / Linux 環境での実行について
+本アプリは WSL2 (Ubuntu) 上での動作を確認していますが、Linux環境特有のフォントレンダリングや文字化け（豆腐現象）を回避するため、以下の設定を推奨します。
+
+### 1. 日本語フォントのインストール
+WSL側に日本語フォントがインストールされていない場合、UIの日本語が正しく表示されません。以下のコマンドで標準的なフォントをインストールしてください。
+
+```bash
+sudo apt update
+sudo apt install -y fonts-noto-cjk fonts-ipafont-gothic
+fc-cache -fv
+```
+
+### 2. 特殊記号（シンボル）の表示
+再生・停止などのメディア操作記号は、環境に左右されないよう SVGベクター形式のアイコン を採用しています。これにより、特定のシンボルフォント（fonts-symbola等）が未導入の環境でも、デザインが崩れることなく一貫したUIを提供します。
+
