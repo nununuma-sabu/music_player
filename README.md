@@ -23,16 +23,18 @@
 ---
 
 ## 🏗 アーキテクチャ
-本プロジェクトでは、高レイヤ（UI）と低レイヤ（Engine）を明確に分離する疎結合な設計を採用しています。
+高レイヤ（UI）、ミドルレイヤ（Core/Logic）、低レイヤ（Engine）を明確に分離しています。
 
-### 1. Python Layer (Frontend)
-- **PySide6**: ダークモードを基調としたネイティブUI。コンポーネント指向によるクラス設計。
-- **Mutagen**: 音楽ファイルのタグ情報をオンメモリで解析。
-- **SVG Icons**: OS環境（WSL/Windows/macOS）に依存しない、スケーラブルでシャープなグラフィック表現。
+### 1. Python UI Layer
+- **PySide6**: ダークモードを基調としたネイティブUI。各パーツをコンポーネント化。
+- **SVG Icons**: OS環境に依存しない、スケーラブルなグラフィック表現。
 
-### 2. Rust Layer (Backend - Under Development)
+### 2. Python Core Layer
+- **Metadata Handler**: `mutagen` を用いたメタデータ抽出。MP3やFLACなどのマルチフォーマットに対応。
+- **Logic Isolation**: UIからロジックを分離し、ユニットテストが可能な設計を採用。
+
+### 3. Rust Layer (Backend - Under Development)
 - **Performance**: SIMD等を意識した高速な信号処理ロジック。
-- **Algorithm**: 窓関数（Hann Window）を適用したFFT計算。
 - **Bridge**: PyO3によるPythonモジュールとしての統合。
 
 ---
@@ -40,8 +42,10 @@
 ## 📈 現在の実装状況
 - [x] PySide6を用いたダークモードGUIの構築
 - [x] 各種コンポーネント（Slider, Controls, DropZone）のモジュール化
-- [x] SVGアイコンによるUI/UXの改善
-- [x] Mutagenによるメタデータ表示の実装
+- [x] ファイル選択ダイアログの実装（WSL2環境でのWindowsファイルアクセス対応）
+- [x] Mutagenによるメタデータ抽出ロジックの実装（MP3/FLAC対応）
+- [x] 信号処理ロジックの分離・リファクタリング
+- [ ] プレイリスト表示機能の実装
 - [ ] Rust製エンジンの統合
 - [ ] リアルタイム・イコライザーの実装
 
@@ -57,6 +61,9 @@
     * **課題**: MP3（ID3タグ）とFLAC（Vorbis Comment）でメタデータの格納形式（タグ名）が異なり、一律の処理では情報を取得できない。
     * **解決**: `mutagen` ライブラリを採用し、タグの種類に応じて取得キーを動的に切り替えるラッパーを実装。
     * **結果**: MP3、FLAC共に「タイトル・アーティスト・アルバム・演奏時間」の正確な抽出に成功。タグ未設定時のフォールバックとしてファイル名を表示する処理も実装。
+
+* **リファクタリング**
+    * ユニットテストの導入を見据え、UIからメタデータ抽出ロジックを `core` モジュールへ分離。
 
 楽曲データを選択し、メタデータ取得まで
 ![モック](music_player/docs/images/モック.png)
