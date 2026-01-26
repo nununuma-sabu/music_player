@@ -1,0 +1,51 @@
+# tests/test_metadata.py
+import pytest
+from unittest.mock import MagicMock, patch
+from core.metadata import extract_metadata
+
+
+# --- MP3のテスト ---
+def test_extract_metadata_mp3():
+    mock_audio = MagicMock()
+    mock_audio.tags = {
+        "TIT2": ["Test MP3 Title"],
+        "TPE1": ["Test MP3 Artist"],
+        "TALB": ["Test MP3 Album"],
+    }
+    mock_audio.info.length = 180
+
+    with patch("core.metadata.MutagenFile", return_value=mock_audio):
+        info = extract_metadata("dummy.mp3")
+        assert info["title"] == "Test MP3 Title"
+        assert info["artist"] == "Test MP3 Artist"
+
+
+# --- FLACのテスト ---
+def test_extract_metadata_flac():
+    mock_audio = MagicMock()
+    mock_audio.tags = {"title": ["Test FLAC Title"], "artist": ["Test FLAC Artist"]}
+    mock_audio.info.length = 240
+
+    with patch("core.metadata.MutagenFile", return_value=mock_audio):
+        info = extract_metadata("dummy.flac")
+        assert info["title"] == "Test FLAC Title"
+        assert info["duration"] == 240
+
+
+# --- タグがない場合のフォールバックテスト ---
+def test_extract_metadata_no_tags():
+    mock_audio = MagicMock()
+    mock_audio.tags = None
+    mock_audio.info.length = 100
+
+    with patch("core.metadata.MutagenFile", return_value=mock_audio):
+        info = extract_metadata("path/to/my_song.mp3")
+        assert info["title"] == "my_song.mp3"
+        assert info["artist"] == "Unknown Artist"
+
+
+# --- 読み込みエラー時のテスト ---
+def test_extract_metadata_error():
+    with patch("core.metadata.MutagenFile", side_effect=Exception("Read Error")):
+        info = extract_metadata("invalid.mp3")
+        assert info is None
