@@ -22,3 +22,9 @@ Thumbs.db
 f.txt
 *.tmp
 *.bak
+
+# music file
+*.mp3
+*.wav
+*.flac
+*.aac
