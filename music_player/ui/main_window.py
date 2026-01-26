@@ -65,6 +65,7 @@ class MainWindow(QMainWindow):
                 title = os.path.basename(f)
                 artist = "Unknown Artist"
                 album = "Unknown Album"
+                composer = "Unknown Composer"
 
                 # 形式ごとのタグ取得ロジック
                 if hasattr(audio, "tags") and audio.tags is not None:
@@ -81,11 +82,13 @@ class MainWindow(QMainWindow):
                         title = tags.get("title", [title])[0]
                         artist = tags.get("artist", [artist])[0]
                         album = tags.get("album", [album])[0]
+                        composer = tags.get("composer", [composer])[0]
 
                 duration = int(audio.info.length)
                 print(
                     f"解析成功: {title} - {artist} [{album}] ({duration // 60}:{duration % 60})"
                 )
+                print(f"作曲: {composer}")
 
             except Exception as e:
                 print(f"解析エラー ({os.path.basename(f)}): {e}")
