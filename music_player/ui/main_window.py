@@ -1,31 +1,53 @@
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget
 from .components.eq_slider import EqSlider
 from .components.player_controls import PlayerControls
 from .components.drop_zone import DropZone
+from .components.playlist_view import PlaylistView
 from core.metadata import extract_metadata
+from core.playlist import PlaylistManager
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Music Player Portfolio")
-        self.resize(900, 600)
+        self.resize(900, 650)  # タブ化により縦幅を最適化
+
+        # マネージャーの初期化
+        self.playlist_manager = PlaylistManager()
 
         # 中央ウィジェットとメインレイアウト
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setSpacing(20)
-        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(15, 15, 15, 15)
 
-        # 1. ドロップエリア（上部）
+        # --- タブウィジェットの作成 ---
+        self.tabs = QTabWidget()
+        # スタイルシートでタブの見た目を少し調整
+        self.tabs.setStyleSheet(
+            """
+            QTabWidget::pane { border: 1px solid #444; top: -1px; }
+            QTabBar::tab { background: #2a2a2a; color: #aaa; padding: 10px 20px; border: 1px solid #444; }
+            QTabBar::tab:selected { background: #333; color: #00d1b2; border-bottom: none; }
+        """
+        )
+
+        # 1. Player Tab (Playlist + DropZone)
+        player_tab = QWidget()
+        player_layout = QVBoxLayout(player_tab)
+
         self.drop_zone = DropZone()
         self.drop_zone.filesDropped.connect(self._on_files_dropped)
-        main_layout.addWidget(self.drop_zone)
+        player_layout.addWidget(self.drop_zone)
 
-        # 2. イコライザーエリア（中部）
-        eq_group = QWidget()
-        eq_layout = QHBoxLayout(eq_group)
+        self.playlist_view = PlaylistView()
+        player_layout.addWidget(self.playlist_view)
+
+        # 2. Equalizer Tab
+        eq_tab = QWidget()
+        eq_layout = QHBoxLayout(eq_tab)
         self.eq_bands = {}
         frequencies = [
             "32Hz",
@@ -42,31 +64,23 @@ class MainWindow(QMainWindow):
 
         for freq in frequencies:
             band = EqSlider(freq)
-            # スライダーが動いたらとりあえずコンソールに出力
             band.valueChanged.connect(lambda f, v: print(f"EQ Change: {f} -> {v}dB"))
             eq_layout.addWidget(band)
             self.eq_bands[freq] = band
 
-        main_layout.addWidget(eq_group)
+        # タブの追加
+        self.tabs.addTab(player_tab, "Playlist")
+        self.tabs.addTab(eq_tab, "Equalizer")
 
-        # 3. 操作系（下部）
+        main_layout.addWidget(self.tabs)
+
+        # 3. 操作系（下部に固定）
         self.controls = PlayerControls()
-        self.controls.playClicked.connect(lambda: print("Play Clicked"))
         main_layout.addWidget(self.controls)
 
     def _on_files_dropped(self, files):
-        """
-        ファイルが選択された際の処理
-        """
         for f in files:
-            # ロジック部分を呼び出す
             metadata = extract_metadata(f)
-
             if metadata:
-                print(
-                    f"解析成功: {metadata['title']} - {metadata['artist']} "
-                    f"[{metadata['album']}] ({metadata['duration']//60}:{metadata['duration']%60:02d})"
-                )
-                print(f"作曲: {metadata['composer']}")
-            else:
-                print(f"解析失敗: {f}")
+                self.playlist_manager.add_song(metadata)
+                self.playlist_view.add_song_item(metadata)
