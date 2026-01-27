@@ -1,6 +1,6 @@
 # Music Player (Provisional)
 
-![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/nununuma-sabu/<あなたのGIST_ID>/raw/music-player-coverage.json)
 ![Tests](https://img.shields.io/badge/tests-20%2F20%20passed-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
