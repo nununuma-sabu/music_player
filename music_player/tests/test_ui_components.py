@@ -3,6 +3,9 @@ from PySide6.QtCore import Qt, QMimeData, QUrl, QPoint
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from ui.components.drop_zone import DropZone
 from ui.components.playlist_view import PlaylistView
+from PySide6.QtGui import QMouseEvent
+from PySide6.QtCore import QPoint, Qt
+from ui.components.clickable_slider import ClickableSlider
 
 
 def test_drop_zone_full_logic(qtbot):
@@ -65,3 +68,25 @@ def test_playlist_view_interaction(qtbot):
     assert (
         blocker.args[0] == "/home/user/music/test_unit.flac"
     )  # パスが正しく伝搬したか
+
+
+def test_clickable_slider_direct_jump(qtbot):
+    """シークバーのクリック位置へ正しく値がジャンプするかを検証"""
+    # 1. 横向きのスライダーを作成 (範囲: 0 - 100)
+    slider = ClickableSlider(Qt.Horizontal)
+    slider.setRange(0, 100)
+    slider.setFixedWidth(100)  # 計算を単純にするため幅を固定
+    qtbot.addWidget(slider)
+
+    # 2. スライダーの中央（50px地点）をクリックしたことにする
+    click_point = QPoint(50, slider.height() // 2)
+
+    # sliderMoved シグナル（再生位置変更のトリガー）が発火するか監視
+    with qtbot.waitSignal(slider.sliderMoved, timeout=1000) as blocker:
+        # 左クリックをシミュレート
+        qtbot.mouseClick(slider, Qt.LeftButton, pos=click_point)
+
+    # 3. 値が中央付近（50）にジャンプしているか検証
+    # スタイルの余白等により多少の前後があるため、範囲で検証
+    assert 45 <= slider.value() <= 55
+    assert 45 <= blocker.args[0] <= 55

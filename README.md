@@ -112,7 +112,7 @@
     python3 -m pytest
 
     # カバレッジを出力したい場合
-    python3 -m pytest --cov=core --cov-report=html tests/
+    python3 -m pytest --cov=core --cov=ui --cov-report=html tests/
     ```
 
 楽曲データの再生までは実装
