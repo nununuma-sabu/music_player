@@ -1,4 +1,6 @@
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget
+from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput  # 追加(音声再生)
+from PySide6.QtCore import QUrl  # 追加(音声再生)
 from .components.eq_slider import EqSlider
 from .components.player_controls import PlayerControls
 from .components.drop_zone import DropZone
@@ -78,6 +80,19 @@ class MainWindow(QMainWindow):
         self.controls = PlayerControls()
         main_layout.addWidget(self.controls)
 
+        # 再生エンジン初期化
+        self.player = QMediaPlayer()
+        self.audio_output = QAudioOutput()
+        self.player.setAudioOutput(self.audio_output)
+
+        # 音量は50%に設定
+        self.audio_output.setVolume(0.5)
+
+        # コントロールボタンとプレイヤーの接続
+        self.controls.playClicked.connect(self.player.play)
+        self.controls.pauseClicked.connect(self.player.pause)
+        self.controls.stopClicked.connect(self.player.stop)
+
         # プレイリストの選曲シグナルを接続
         self.playlist_view.songSelected.connect(self._on_song_selected)
 
@@ -94,6 +109,12 @@ class MainWindow(QMainWindow):
         metadata = extract_metadata(file_path)
 
         if metadata:
-            # 下部のコントロールバーの表示を更新
+            # プレイヤーにソースをセット
+            self.player.setSource(QUrl.fromLocalFile(file_path))
+
+            # UI表示を更新
             self.controls.update_song_info(metadata["title"], metadata["artist"])
-            print(f"DEBUG: UI Updated for -> {metadata['title']}")
+
+            # 選んだ瞬間に再生を開始させるならここに追加
+            self.player.play()
+            print(f"DEBUG: Playback started -> {file_path}")
