@@ -1,49 +1,42 @@
 import sys
 import os
 from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QPalette, QColor
+from PySide6.QtCore import Qt
 from ui.main_window import MainWindow
 
 
+def resource_path(relative_path):
+    """.exe化後も画像を見つけられるようにする魔法の関数"""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+
 def main():
-    # GUIアプリケーションのインスタンス作成
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")  # 基本をフラットにする
 
-    # --- WSL/Linux環境向けのフォント設定 ---
-    # インストールした日本語フォントを優先的に探します
-    # Noto Sans CJK JP や IPAGothic が WSLg では一般的です
-    font_families = ["Noto Sans CJK JP", "IPAGothic", "TakaoGothic", "DejaVu Sans"]
-    selected_font = None
+    # --- 漆黒パレットの強制適用 ---
+    palette = QPalette()
+    dark_color = QColor(18, 18, 18)  # #121212
+    palette.setColor(QPalette.Window, dark_color)
+    palette.setColor(QPalette.WindowText, Qt.white)
+    palette.setColor(QPalette.Base, QColor(25, 25, 25))
+    palette.setColor(QPalette.AlternateBase, dark_color)
+    palette.setColor(QPalette.ToolTipBase, Qt.white)
+    palette.setColor(QPalette.ToolTipText, Qt.white)
+    palette.setColor(QPalette.Text, Qt.white)
+    palette.setColor(QPalette.Button, QColor(42, 42, 42))
+    palette.setColor(QPalette.ButtonText, Qt.white)
+    palette.setColor(QPalette.BrightText, Qt.red)
+    palette.setColor(QPalette.Link, QColor(0, 242, 195))  # ミントグリーン
+    palette.setColor(QPalette.Highlight, QColor(0, 242, 195))
+    palette.setColor(QPalette.HighlightedText, Qt.black)
+    app.setPalette(palette)
 
-    for family in font_families:
-        font = QFont(family, 10)
-        # exactMatchは環境により挙動が異なるため、
-        # 確実に設定したい場合は一番手近なインストール済みフォントを指定します
-        selected_font = font
-        break
-
-    if selected_font:
-        app.setFont(selected_font)
-
-    # --- QSS（スタイルシート）の読み込み ---
-    # music_player/styles/theme.qss を UTF-8 で読み込みます
-    base_dir = os.path.dirname(__file__)
-    qss_path = os.path.join(base_dir, "styles", "theme.qss")
-
-    if os.path.exists(qss_path):
-        try:
-            with open(qss_path, "r", encoding="utf-8") as f:
-                app.setStyleSheet(f.read())
-        except Exception as e:
-            print(f"スタイルシートの読み込みエラー: {e}")
-    else:
-        print(f"警告: スタイルシートが見つかりません: {qss_path}")
-
-    # メインウィンドウの表示
     window = MainWindow()
     window.show()
-
-    # イベントループの開始
     sys.exit(app.exec())
 
 

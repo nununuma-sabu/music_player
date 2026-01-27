@@ -49,6 +49,10 @@
 - [ ] Rust製エンジンの統合
 - [ ] リアルタイム・イコライザーの実装
 
+## 📅 [2026-01-27] 実行ファイル作成対応
+* **アセット完全同期**: `_MEIPASS` を考慮したパス解決関数の導入により、PyInstaller ビルド時における SVG アイコンの消失問題を解消。
+* **UI/UXの最終研磨**: `Fusion` スタイルと `QPalette` の併用により、OS に依存しないブランドカラー（ミントグリーン）の定着に成功。
+
 ## 📅 [2026-01-27]  リファクタリング実施
 * **リファクタリング（関心の分離）**: 
     * `MainWindow` から再生ロジックを分離し、`AudioEngine` クラスへ委譲。単一責任原則（SRP）に基づき、UIは「指揮官（配置・配線）」、エンジンは「心臓部（再生管理）」としての役割を明確化。
@@ -152,3 +156,30 @@ fc-cache -fv
 ### 2. 特殊記号（シンボル）の表示
 再生・停止などのメディア操作記号は、環境に左右されないよう SVGベクター形式のアイコン を採用しています。これにより、特定のシンボルフォント（fonts-symbola等）が未導入の環境でも、デザインが崩れることなく一貫したUIを提供します。
 
+## 📦 ビルドガイド
+本プロジェクトは PyInstaller を使用してスタンドアロンの実行ファイルを生成します。ビルド前に、アイコンリソースが含まれる `styles/icons` フォルダがルートディレクトリに存在することを確認してください。
+
+### 💻 Windows (PowerShell)
+Windows 環境で `.exe` ファイルを生成するコマンドです。
+
+```powershell
+pyinstaller --onefile --windowed `
+            --name "PortfolioMusicPlayer" `
+            --add-data "styles/icons;styles/icons" `
+            --collect-submodules core `
+            --collect-submodules ui `
+            --noconfirm `
+            main.py
+```
+
+### 🐧 Linux / WSL (bash)
+WSL または Linux 環境で実行バイナリを生成するコマンドです。
+```bash
+pyinstaller --onefile --windowed \
+            --name "PortfolioMusicPlayer" \
+            --add-data "styles/icons:styles/icons" \
+            --collect-submodules core \
+            --collect-submodules ui \
+            --noconfirm \
+            main.py
+```
