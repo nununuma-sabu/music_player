@@ -30,20 +30,22 @@ jobs:
     - name: Run tests with coverage
       run: |
         export QT_QPA_PLATFORM=offscreen
-        # テストを実行し、結果をテキストファイルに保存
-        python3 -m pytest --cov=music_player/core --cov=music_player/ui music_player/tests/ --cov-report=term-missing | tee pytest-coverage.txt
+        # --color=no を追加して、文字抽出を邪魔する色コードを排除します
+        python3 -m pytest --color=no --cov=music_player/core --cov=music_player/ui music_player/tests/ --cov-report=term-missing | tee pytest-coverage.txt
 
     - name: Extract Coverage Percentage
       id: extract_coverage
       run: |
-        # Total行から「数値%」のパターンを直接抽出
-        COVERAGE=$(grep -i "TOTAL" pytest-coverage.txt | grep -oE "[0-9]+%" | head -1 | sed 's/%//')
+        # 1. 行の先頭が 'TOTAL' または 'Total' で始まる行を探す
+        # 2. その行の最後にある『数字%』を抜き出し、%を除去する
+        #
+        COVERAGE=$(grep -i "^TOTAL" pytest-coverage.txt | awk '{print $NF}' | tr -d '%')
         
-        # 抽出に失敗した場合は 0 をデフォルトにする
+        # 抽出に失敗した場合は 0 にする（バッジ壊れ防止）
         if [ -z "$COVERAGE" ]; then COVERAGE="0"; fi
         
         echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
-        echo "Final Extracted Number: $COVERAGE" # ここでデバッグログを確認できます
+        echo "Checked Coverage: $COVERAGE%"
 
     - name: Generate Coverage Badge
       uses: schneegans/dynamic-badges-action@v1.7.0
@@ -52,6 +54,6 @@ jobs:
         gistID: 2ee8e15cec07f3ec79161c23e9e0c25e
         filename: music-player-coverage.json
         label: coverage
-        # 抽出された数値に % をつけてバッジに送信
+        # 抽出した 95 という数字に % をつけてバッジに反映
         message: ${{ steps.extract_coverage.outputs.percentage }}%
         color: brightgreen
