@@ -9,16 +9,16 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QSize, Signal, Qt
+from PySide6.QtMultimedia import QMediaPlayer  # 状態判定用にインポート追加
 
 
 class PlayerControls(QWidget):
     # シグナル定義
-    playClicked = Signal()
-    pauseClicked = Signal()
+    playPauseClicked = Signal()
     stopClicked = Signal()
     skipForwardClicked = Signal()
     skipBackwardClicked = Signal()
-    seekRequested = Signal(int)  # スライダー操作用に追加
+    seekRequested = Signal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -100,23 +100,22 @@ class PlayerControls(QWidget):
             )
             return btn
 
+        # 各ボタンを作成 (btn_playとbtn_pauseを削除し、btn_toggleを作成)
         self.btn_prev = create_icon_button("prev")
         self.btn_stop = create_icon_button("stop")
-        self.btn_play = create_icon_button("play")
-        self.btn_pause = create_icon_button("pause")
+        self.btn_toggle = create_icon_button("play")  # 初期はplayアイコン
         self.btn_next = create_icon_button("next")
 
-        self.btn_play.clicked.connect(self.playClicked.emit)
-        self.btn_pause.clicked.connect(self.pauseClicked.emit)
+        self.btn_toggle.clicked.connect(self.playPauseClicked.emit)
         self.btn_stop.clicked.connect(self.stopClicked.emit)
         self.btn_next.clicked.connect(self.skipForwardClicked.emit)
         self.btn_prev.clicked.connect(self.skipBackwardClicked.emit)
 
+        # レイアウトへの組み立て（btn_toggleを中央に配置）
         self.button_layout.addStretch()
         self.button_layout.addWidget(self.btn_prev)
         self.button_layout.addWidget(self.btn_stop)
-        self.button_layout.addWidget(self.btn_play)
-        self.button_layout.addWidget(self.btn_pause)
+        self.button_layout.addWidget(self.btn_toggle)  # ここを統合
         self.button_layout.addWidget(self.btn_next)
         self.button_layout.addStretch()
 
@@ -142,3 +141,13 @@ class PlayerControls(QWidget):
 
     def update_song_info(self, title, artist):
         self.info_label.setText(f"♪ {title} - {artist}")
+
+    def update_playback_icons(self, state):
+        """再生状態に応じてアイコンを切り替える"""
+        icon_name = "pause" if state == QMediaPlayer.PlayingState else "play"
+        icon_path = f"styles/icons/{icon_name}.svg"
+
+        if os.path.exists(icon_path):
+            self.btn_toggle.setIcon(QIcon(icon_path))
+        else:
+            self.btn_toggle.setText("||" if icon_name == "pause" else ">")

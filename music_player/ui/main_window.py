@@ -61,9 +61,14 @@ class MainWindow(QMainWindow):
         # シグナルとスロットの接続
         self.drop_zone.filesDropped.connect(self._on_files_dropped)
 
-        self.controls.playClicked.connect(self.player.play)
-        self.controls.pauseClicked.connect(self.player.pause)
+        # --- 修正ポイント：統合した再生・一時停止ボタンの接続 ---
+        self.controls.playPauseClicked.connect(self._toggle_playback)
         self.controls.stopClicked.connect(self.player.stop)
+        self.controls.skipForwardClicked.connect(self.player.stop)  # 仮
+        self.controls.skipBackwardClicked.connect(self.player.stop)  # 仮
+
+        # --- 追加ポイント：プレイヤーの状態を監視してアイコンを自動更新 ---
+        self.player.playbackStateChanged.connect(self.controls.update_playback_icons)
 
         # シークバーの同期接続
         self.player.positionChanged.connect(self._on_position_changed)
@@ -73,8 +78,14 @@ class MainWindow(QMainWindow):
         # プレイリストの選曲シグナルを接続
         self.playlist_view.songSelected.connect(self._on_song_selected)
 
+    def _toggle_playback(self):
+        """再生と一時停止を切り替える"""
+        if self.player.playbackState() == QMediaPlayer.PlayingState:
+            self.player.pause()
+        else:
+            self.player.play()
+
     def _on_files_dropped(self, files):
-        """ファイルがドロップされた時の処理"""
         for f in files:
             metadata = extract_metadata(f)
             if metadata:
@@ -82,18 +93,14 @@ class MainWindow(QMainWindow):
                 self.playlist_view.add_song_item(metadata)
 
     def _on_song_selected(self, file_path):
-        """曲がダブルクリックされた時の処理"""
         metadata = extract_metadata(file_path)
         if metadata:
             self.player.setSource(QUrl.fromLocalFile(file_path))
             self.controls.update_song_info(metadata["title"], metadata["artist"])
             self.player.play()
-            print(f"DEBUG: Playback started -> {file_path}")
 
     def _on_position_changed(self, position):
-        """再生位置が変わるたびに呼ばれる"""
         self.controls.update_position(position, self.player.duration())
 
     def _on_duration_changed(self, duration):
-        """曲が読み込まれて長さが確定した時に呼ばれる"""
         self.controls.set_duration(duration)
