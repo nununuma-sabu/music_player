@@ -34,3 +34,9 @@ class AudioEngine(QObject):
 
     def set_position(self, position):
         self.player.setPosition(position)
+
+    # ボリューム設定
+    def set_volume(self, value):
+        """0-100の整数を受け取り、0.0-1.0に変換して適用"""
+        # AudioEngine内で初期化済みのaudio_outputを使用
+        self.audio_output.setVolume(value / 100.0)

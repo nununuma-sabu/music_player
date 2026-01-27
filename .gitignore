@@ -28,3 +28,12 @@ f.txt
 *.wav
 *.flac
 *.aac
+
+# ビルド成果物
+dist/
+build/
+*.spec
+
+# Pythonのキャッシュ
+__pycache__/
+*.pyc

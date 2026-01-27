@@ -15,7 +15,7 @@ from .clickable_slider import ClickableSlider
 
 
 def get_asset_path(relative_path):
-    """.exe化しても画像を見つけられるように絶対パスを解決する魔法の関数"""
+    """.exe化しても画像を見つけられるように絶対パスを解決する関数"""
     if hasattr(sys, "_MEIPASS"):
         # PyInstallerの一時展開先を参照
         return os.path.join(sys._MEIPASS, relative_path)
@@ -36,6 +36,7 @@ class PlayerControls(QWidget):
         self.main_layout.setContentsMargins(10, 5, 10, 5)
         self.main_layout.setSpacing(5)
 
+        # 1. 曲情報表示ラベル
         self.info_label = QLabel("No Song Selected")
         self.info_label.setAlignment(Qt.AlignCenter)
         self.info_label.setStyleSheet(
@@ -48,6 +49,7 @@ class PlayerControls(QWidget):
         )
         self.main_layout.addWidget(self.info_label)
 
+        # 2. シークバーエリア
         self.seek_layout = QHBoxLayout()
         self.label_current = QLabel("00:00")
         self.label_current.setStyleSheet("color: #888; font-size: 11px;")
@@ -71,18 +73,19 @@ class PlayerControls(QWidget):
 
         self.slider.sliderMoved.connect(self.seekRequested.emit)
 
+        # 3. ボタンとボリューム用の横レイアウト
         self.button_layout = QHBoxLayout()
         self.button_layout.setSpacing(15)
 
+        # アイコンボタン作成用ヘルパー
         def create_icon_button(icon_name):
             btn = QPushButton()
-            # ★ パス解決関数を通す
             icon_path = get_asset_path(f"styles/icons/{icon_name}.svg")
 
             if os.path.exists(icon_path):
                 btn.setIcon(QIcon(icon_path))
             else:
-                btn.setText("?")  # パスが通っていない場合はこれが出る
+                btn.setText("?")
 
             btn.setIconSize(QSize(24, 24))
             btn.setFixedSize(40, 40)
@@ -95,24 +98,50 @@ class PlayerControls(QWidget):
             )
             return btn
 
+        # 各ボタン作成
         self.btn_prev = create_icon_button("prev")
         self.btn_stop = create_icon_button("stop")
         self.btn_toggle = create_icon_button("play")
         self.btn_next = create_icon_button("next")
 
-        self.btn_toggle.clicked.connect(self.playPauseClicked.emit)
-        self.btn_stop.clicked.connect(self.stopClicked.emit)
-        self.btn_next.clicked.connect(self.skipForwardClicked.emit)
-        self.btn_prev.clicked.connect(self.skipBackwardClicked.emit)
+        # ★ 音量調整エリアの作成
+        self.vol_label = QLabel("Vol:")
+        self.vol_label.setStyleSheet("color: #888; font-size: 11px;")
+        self.volume_slider = QSlider(Qt.Horizontal)
+        self.volume_slider.setRange(0, 100)
+        self.volume_slider.setValue(50)  # 初期値は安全な50%
+        self.volume_slider.setFixedWidth(100)
+        self.volume_slider.setStyleSheet(
+            """
+            QSlider::groove:horizontal { border: 1px solid #444; height: 4px; background: #2a2a2a; }
+            QSlider::handle:horizontal { background: #00f2c3; width: 10px; height: 10px; border-radius: 5px; margin: -3px 0; }
+        """
+        )
 
+        # --- レイアウト組み立て（黄金比配置） ---
+        # 左側に大きな余白を作ってボタンを中央へ
         self.button_layout.addStretch()
+
+        # 中央：再生コントロール
         self.button_layout.addWidget(self.btn_prev)
         self.button_layout.addWidget(self.btn_stop)
         self.button_layout.addWidget(self.btn_toggle)
         self.button_layout.addWidget(self.btn_next)
+
+        # 中央と右端の間に余白
         self.button_layout.addStretch()
 
+        # ★ 右端：ボリュームコントロール
+        self.button_layout.addWidget(self.vol_label)
+        self.button_layout.addWidget(self.volume_slider)
+
         self.main_layout.addLayout(self.button_layout)
+
+        # 接続設定
+        self.btn_toggle.clicked.connect(self.playPauseClicked.emit)
+        self.btn_stop.clicked.connect(self.stopClicked.emit)
+        self.btn_next.clicked.connect(self.skipForwardClicked.emit)
+        self.btn_prev.clicked.connect(self.skipBackwardClicked.emit)
 
     def update_position(self, position_ms, duration_ms):
         if not self.slider.isSliderDown():
@@ -129,13 +158,11 @@ class PlayerControls(QWidget):
         return f"{m:02d}:{s:02d}"
 
     def update_song_info(self, title, artist):
-        # ミントグリーン色を反映
         self.info_label.setText(f"♪ {title} - {artist}")
 
     def update_playback_icons(self, state):
         """再生状態に応じてアイコンを切り替える"""
         icon_name = "pause" if state == QMediaPlayer.PlayingState else "play"
-        # ★ ここもパス解決関数を通す
         icon_path = get_asset_path(f"styles/icons/{icon_name}.svg")
 
         if os.path.exists(icon_path):

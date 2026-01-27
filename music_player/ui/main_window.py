@@ -121,7 +121,11 @@ class MainWindow(QMainWindow):
         self.engine.position_changed.connect(self._on_position_changed)
         self.engine.duration_changed.connect(self.controls.set_duration)
 
-    # --- 以下のメソッドが不足していました ---
+        # 音量スライダーの変更をエンジンに伝える
+        self.controls.volume_slider.valueChanged.connect(self.engine.set_volume)
+
+        # ★ 起動時のスライダー値をエンジンに即時反映させる
+        self.engine.set_volume(self.controls.volume_slider.value())
 
     def _on_files_dropped(self, files):
         """ファイルがドロップされた時の処理"""
