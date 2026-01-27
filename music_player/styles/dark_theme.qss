@@ -2,3 +2,33 @@ QMainWindow #eqContainer {
     background-color: #121212;
     border: 1px solid #333; /* 境界線を薄く入れるとより高級感が出ます */
 }
+
+/* タブバー全体の基本設定 */
+QTabBar::tab {
+    background-color: #2a2a2a; /* 非選択時は暗めのグレー */
+    color: #888888;            # 非選択時の文字は控えめに
+    padding: 8px 20px;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    margin-right: 2px;
+}
+
+/* マウスホバー時の挙動 */
+QTabBar::tab:hover {
+    background-color: #3a3a3a;
+    color: #ffffff;
+}
+
+/* ★ 選択されているタブのスタイル ★ */
+QTabBar::tab:selected {
+    background-color: #121212; /* イコライザー背景と同じ黒 */
+    color: #00f2c3;            /* ミントグリーン */
+    border-bottom: 2px solid #00f2c3; /* 下線を入れて強調 */
+    font-weight: bold;
+}
+
+/* タブとコンテンツ境界の線を消して一体感を出す */
+QTabWidget::pane {
+    border: none;
+    top: -1px; /* タブとの隙間を埋める */
+}

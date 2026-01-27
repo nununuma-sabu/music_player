@@ -27,7 +27,38 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         # タブ全体の背景も念のため指定
         self.tabs.setStyleSheet(
-            "QTabWidget::pane { background-color: #121212; border: none; }"
+            """
+            /* タブが表示される土台の部分 */
+            QTabWidget::pane {
+                border: none;
+                background-color: #121212;
+                top: -1px;
+            }
+            /* タブバー全体の背景 */
+            QTabBar {
+                background-color: #2a2a2a;
+            }
+            /* 個々のタブ（非選択時） */
+            QTabBar::tab {
+                background-color: #2a2a2a;
+                color: #888888;
+                padding: 10px 30px;
+                border: none;
+                min-width: 80px;
+            }
+            /* マウスを乗せた時 */
+            QTabBar::tab:hover {
+                background-color: #333333;
+                color: #ffffff;
+            }
+            /* ★ 選択されているタブ ★ */
+            QTabBar::tab:selected {
+                background-color: #121212; /* コンテンツエリアと同じ黒 */
+                color: #00f2c3;            /* ぬまお気に入りのミントグリーン */
+                border-bottom: 3px solid #00f2c3; /* 下線で強調 */
+                font-weight: bold;
+            }
+        """
         )
 
         # --- Playlist タブ ---
