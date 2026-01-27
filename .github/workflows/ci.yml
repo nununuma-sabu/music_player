@@ -23,10 +23,14 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        # libegl1 と libgl1 を追加して libEGL.so.1 エラーを解消
+        # libpulse0(音声) と libasound2(ALSA) を追加して QtMultimedia のエラーを解消
         sudo apt-get install -y \
           libegl1 \
           libgl1 \
+          libpulse0 \
+          libasound2 \
+          libnss3 \
+          libgbm1 \
           libxcb-cursor0 \
           libxkbcommon-x11-0 \
           libxcb-icccm4 \
@@ -63,6 +67,5 @@ jobs:
         gistID: 2ee8e15cec07f3ec79161c23e9e0c25e
         filename: music-player-coverage.json
         label: coverage
-        # 抽出した 95% をバッジに反映
         message: ${{ steps.extract_coverage.outputs.percentage }}%
         color: brightgreen
