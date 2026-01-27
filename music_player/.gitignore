@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS specific (Windows/WSL)
+*.svg:Zone.Identifier
+Thumbs.db
+.DS_Store
+
+# Temporary files
+f.txt
+*.tmp
+*.bak
+
+# music file
+*.mp3
+*.wav
+*.flac
+*.aac
+
+# PyInstallerのビルド成果物
+dist/
+build/
+*.spec
+
+# Pythonのキャッシュ
+__pycache__/
+*.pyc
+
+# テスト関連
+htmlcov/
+.pytest_cache/
