@@ -23,12 +23,12 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        # libpulse0(音声) と libasound2(ALSA) を追加して QtMultimedia のエラーを解消
+        # libasound2 を libasound2t64 に変更し、Noble環境に対応
         sudo apt-get install -y \
           libegl1 \
           libgl1 \
           libpulse0 \
-          libasound2 \
+          libasound2t64 \
           libnss3 \
           libgbm1 \
           libxcb-cursor0 \
@@ -45,13 +45,13 @@ jobs:
     - name: Run tests with coverage
       run: |
         export QT_QPA_PLATFORM=offscreen
-        # --color=no で制御コードを排除し、テキスト抽出を確実にする
+        # 制御コードを排除してテキスト抽出を確実にする
         python3 -m pytest --color=no --cov=music_player/core --cov=music_player/ui music_player/tests/ --cov-report=term-missing | tee pytest-coverage.txt
 
     - name: Extract Coverage Percentage
       id: extract_coverage
       run: |
-        # Total行から「数値%」を抜き出し、数値のみを抽出
+        # Total行から数値を抽出（大文字小文字・余計な空白を無視）
         COVERAGE=$(grep -i "^TOTAL" pytest-coverage.txt | grep -oE "[0-9]+%" | head -1 | tr -d '%')
         
         # 抽出失敗時のガード
