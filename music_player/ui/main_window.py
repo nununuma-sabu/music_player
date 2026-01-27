@@ -1,12 +1,14 @@
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget
 from PySide6.QtCore import QUrl, Qt
+from PySide6.QtGui import QIcon
 from .components.eq_slider import EqSlider
 from .components.player_controls import PlayerControls
 from .components.drop_zone import DropZone
 from .components.playlist_view import PlaylistView
 from core.metadata import extract_metadata
 from core.playlist import PlaylistManager
-from core.engine import AudioEngine  # 新設したエンジンをインポート
+from core.engine import AudioEngine
+from core.utils import get_asset_path
 
 
 class MainWindow(QMainWindow):
@@ -14,6 +16,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Music Player Portfolio")
         self.resize(800, 600)
+
+        # アプリケーションアイコンの設定
+        icon_path = get_asset_path("styles/icons/app_icon.png")
+        self.setWindowIcon(QIcon(icon_path))
 
         # 1. ロジック・データ管理の初期化
         self.playlist_manager = PlaylistManager()
@@ -83,33 +89,15 @@ class MainWindow(QMainWindow):
 
     def _apply_styles(self):
         """強制スタイリングの一括管理"""
-        # タブのスタイル（ミントグリーンのアクセント）
         self.tabs.setStyleSheet(
             """
-            QTabWidget::pane {
-                border: none;
-                background-color: #121212;
-                top: -1px;
-            }
+            QTabWidget::pane { border: none; background-color: #121212; top: -1px; }
             QTabBar { background-color: #2a2a2a; }
-            QTabBar::tab {
-                background-color: #2a2a2a;
-                color: #888888;
-                padding: 10px 30px;
-                border: none;
-                min-width: 80px;
-            }
+            QTabBar::tab { background-color: #2a2a2a; color: #888888; padding: 10px 30px; border: none; min-width: 80px; }
             QTabBar::tab:hover { background-color: #333333; color: #ffffff; }
-            QTabBar::tab:selected {
-                background-color: #121212;
-                color: #00f2c3;
-                border-bottom: 3px solid #00f2c3;
-                font-weight: bold;
-            }
+            QTabBar::tab:selected { background-color: #121212; color: #00f2c3; border-bottom: 3px solid #00f2c3; font-weight: bold; }
         """
         )
-
-        # イコライザーコンテナの背景設定
         self.eq_container.setStyleSheet(
             """
             #eqContainer { background-color: #121212; }
@@ -133,7 +121,10 @@ class MainWindow(QMainWindow):
         self.engine.position_changed.connect(self._on_position_changed)
         self.engine.duration_changed.connect(self.controls.set_duration)
 
+    # --- 以下のメソッドが不足していました ---
+
     def _on_files_dropped(self, files):
+        """ファイルがドロップされた時の処理"""
         for f in files:
             metadata = extract_metadata(f)
             if metadata:
@@ -141,10 +132,12 @@ class MainWindow(QMainWindow):
                 self.playlist_view.add_song_item(metadata)
 
     def _on_song_selected(self, file_path):
+        """プレイリストで曲が選択された時の処理"""
         metadata = extract_metadata(file_path)
         if metadata:
             self.engine.load_song(file_path)
             self.controls.update_song_info(metadata["title"], metadata["artist"])
 
     def _on_position_changed(self, position):
+        """再生位置が変更された時のUI更新"""
         self.controls.update_position(position, self.engine.player.duration())

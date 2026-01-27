@@ -49,6 +49,9 @@
 - [ ] Rust製エンジンの統合
 - [ ] リアルタイム・イコライザーの実装
 
+## 📅 [2026-01-27] アプリのアイコン対応
+* **アイコン設定**: アプリの左上とタスクバー部分にアイコンを設定しました。
+
 ## 📅 [2026-01-27] 実行ファイル作成対応
 * **アセット完全同期**: `_MEIPASS` を考慮したパス解決関数の導入により、PyInstaller ビルド時における SVG アイコンの消失問題を解消。
 * **UI/UXの最終研磨**: `Fusion` スタイルと `QPalette` の併用により、OS に依存しないブランドカラー（ミントグリーン）の定着に成功。
@@ -165,6 +168,7 @@ Windows 環境で `.exe` ファイルを生成するコマンドです。
 ```powershell
 pyinstaller --onefile --windowed `
             --name "PortfolioMusicPlayer" `
+            --icon="styles/icons/app_icon.ico" `
             --add-data "styles/icons;styles/icons" `
             --collect-submodules core `
             --collect-submodules ui `
