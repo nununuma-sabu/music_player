@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QSize, Signal, Qt
 from PySide6.QtMultimedia import QMediaPlayer  # 状態判定用にインポート追加
+from .clickable_slider import ClickableSlider
 
 
 class PlayerControls(QWidget):
@@ -47,7 +48,7 @@ class PlayerControls(QWidget):
         self.label_current = QLabel("00:00")
         self.label_current.setStyleSheet("color: #888; font-size: 11px;")
 
-        self.slider = QSlider(Qt.Horizontal)
+        self.slider = ClickableSlider(Qt.Horizontal)
         self.slider.setRange(0, 0)
         self.slider.setStyleSheet(
             """
