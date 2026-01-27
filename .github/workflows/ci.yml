@@ -30,14 +30,18 @@ jobs:
     - name: Run tests with coverage
       run: |
         export QT_QPA_PLATFORM=offscreen
-        # テストを実行し、結果をテキストファイルに出力
+        # テスト結果をテキストファイルに出力
         python3 -m pytest --cov=music_player/core --cov=music_player/ui music_player/tests/ --cov-report=term-missing | tee pytest-coverage.txt
 
     - name: Extract Coverage Percentage
       id: extract_coverage
       run: |
-        # TOTAL行の末尾（例: 95%）を取得して数値のみ抽出
-        COVERAGE=$(grep "^TOTAL " pytest-coverage.txt | awk '{print $NF}' | sed 's/%//')
+        # 大文字小文字を無視して 'Total' 行を探し、数値を抽出
+        COVERAGE=$(grep -i "^Total " pytest-coverage.txt | awk '{print $NF}' | sed 's/%//')
+        
+        # 数値が取れなかった場合の安全策
+        if [ -z "$COVERAGE" ]; then COVERAGE="0"; fi
+        
         echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
         echo "Extracted Coverage: $COVERAGE%"
 
@@ -48,6 +52,6 @@ jobs:
         gistID: 2ee8e15cec07f3ec79161c23e9e0c25e
         filename: music-player-coverage.json
         label: coverage
-        # 動的に抽出した数値を使用
+        # 抽出した最新の数値をバッジに反映
         message: ${{ steps.extract_coverage.outputs.percentage }}%
         color: brightgreen
