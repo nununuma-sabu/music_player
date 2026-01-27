@@ -1,6 +1,6 @@
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget
-from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput  # 追加(音声再生)
-from PySide6.QtCore import QUrl  # 追加(音声再生)
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QTabWidget
+from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PySide6.QtCore import QUrl, Qt
 from .components.eq_slider import EqSlider
 from .components.player_controls import PlayerControls
 from .components.drop_zone import DropZone
@@ -13,90 +13,68 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Music Player Portfolio")
-        self.resize(900, 650)  # タブ化により縦幅を最適化
+        self.resize(800, 600)
 
-        # マネージャーの初期化
+        # データ管理の初期化
         self.playlist_manager = PlaylistManager()
 
-        # 中央ウィジェットとメインレイアウト
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        main_layout = QVBoxLayout(central_widget)
-        main_layout.setSpacing(10)
-        main_layout.setContentsMargins(15, 15, 15, 15)
+        # メインレイアウトの設定
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.main_layout = QVBoxLayout(self.central_widget)
 
-        # --- タブウィジェットの作成 ---
+        # タブウィジェットの作成
         self.tabs = QTabWidget()
-        # スタイルシートでタブの見た目を少し調整
-        self.tabs.setStyleSheet(
-            """
-            QTabWidget::pane { border: 1px solid #444; top: -1px; }
-            QTabBar::tab { background: #2a2a2a; color: #aaa; padding: 10px 20px; border: 1px solid #444; }
-            QTabBar::tab:selected { background: #333; color: #00d1b2; border-bottom: none; }
-        """
-        )
 
-        # 1. Player Tab (Playlist + DropZone)
-        player_tab = QWidget()
-        player_layout = QVBoxLayout(player_tab)
+        # --- Playlist タブ ---
+        self.playlist_container = QWidget()
+        self.playlist_layout = QVBoxLayout(self.playlist_container)
 
         self.drop_zone = DropZone()
-        self.drop_zone.filesDropped.connect(self._on_files_dropped)
-        player_layout.addWidget(self.drop_zone)
-
         self.playlist_view = PlaylistView()
-        player_layout.addWidget(self.playlist_view)
 
-        # 2. Equalizer Tab
-        eq_tab = QWidget()
-        eq_layout = QHBoxLayout(eq_tab)
-        self.eq_bands = {}
-        frequencies = [
-            "32Hz",
-            "64Hz",
-            "125Hz",
-            "250Hz",
-            "500Hz",
-            "1kHz",
-            "2kHz",
-            "4kHz",
-            "8kHz",
-            "16kHz",
-        ]
+        self.playlist_layout.addWidget(self.drop_zone)
+        self.playlist_layout.addWidget(self.playlist_view)
 
-        for freq in frequencies:
-            band = EqSlider(freq)
-            band.valueChanged.connect(lambda f, v: print(f"EQ Change: {f} -> {v}dB"))
-            eq_layout.addWidget(band)
-            self.eq_bands[freq] = band
+        # --- Equalizer タブ ---
+        self.eq_container = QWidget()
+        self.eq_layout = QVBoxLayout(self.eq_container)
+        self.eq_slider = EqSlider(frequency="1kHz")
+        self.eq_layout.addWidget(self.eq_slider)
 
-        # タブの追加
-        self.tabs.addTab(player_tab, "Playlist")
-        self.tabs.addTab(eq_tab, "Equalizer")
+        self.tabs.addTab(self.playlist_container, "Playlist")
+        self.tabs.addTab(self.eq_container, "Equalizer")
 
-        main_layout.addWidget(self.tabs)
-
-        # 3. 操作系（下部に固定）
+        # コントロールバー
         self.controls = PlayerControls()
-        main_layout.addWidget(self.controls)
+
+        # メインレイアウトに配置
+        self.main_layout.addWidget(self.tabs)
+        self.main_layout.addWidget(self.controls)
 
         # 再生エンジン初期化
         self.player = QMediaPlayer()
         self.audio_output = QAudioOutput()
         self.player.setAudioOutput(self.audio_output)
-
-        # 音量は50%に設定
         self.audio_output.setVolume(0.5)
 
-        # コントロールボタンとプレイヤーの接続
+        # シグナルとスロットの接続
+        self.drop_zone.filesDropped.connect(self._on_files_dropped)
+
         self.controls.playClicked.connect(self.player.play)
         self.controls.pauseClicked.connect(self.player.pause)
         self.controls.stopClicked.connect(self.player.stop)
+
+        # シークバーの同期接続
+        self.player.positionChanged.connect(self._on_position_changed)
+        self.player.durationChanged.connect(self._on_duration_changed)
+        self.controls.seekRequested.connect(self.player.setPosition)
 
         # プレイリストの選曲シグナルを接続
         self.playlist_view.songSelected.connect(self._on_song_selected)
 
     def _on_files_dropped(self, files):
+        """ファイルがドロップされた時の処理"""
         for f in files:
             metadata = extract_metadata(f)
             if metadata:
@@ -105,16 +83,17 @@ class MainWindow(QMainWindow):
 
     def _on_song_selected(self, file_path):
         """曲がダブルクリックされた時の処理"""
-        # メタデータを取得
         metadata = extract_metadata(file_path)
-
         if metadata:
-            # プレイヤーにソースをセット
             self.player.setSource(QUrl.fromLocalFile(file_path))
-
-            # UI表示を更新
             self.controls.update_song_info(metadata["title"], metadata["artist"])
-
-            # 選んだ瞬間に再生を開始させるならここに追加
             self.player.play()
             print(f"DEBUG: Playback started -> {file_path}")
+
+    def _on_position_changed(self, position):
+        """再生位置が変わるたびに呼ばれる"""
+        self.controls.update_position(position, self.player.duration())
+
+    def _on_duration_changed(self, duration):
+        """曲が読み込まれて長さが確定した時に呼ばれる"""
+        self.controls.set_duration(duration)
