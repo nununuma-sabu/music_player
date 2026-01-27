@@ -1,0 +1,43 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xinput0
+        python -m pip install --upgrade pip
+        pip install PySide6 pytest pytest-qt pytest-cov mutagen
+
+    - name: Run tests with coverage
+      run: |
+        export QT_QPA_PLATFORM=offscreen
+        python3 -m pytest --cov=music_player/core --cov=music_player/ui music_player/tests/ --cov-report=term-missing
+
+    - name: Generate Coverage Badge
+      uses: schneegans/dynamic-badges-action@v1.7.0
+      with:
+        auth: ${{ secrets.GIST_SECRET }}
+        gistID: 2ee8e15cec07f3ec79161c23e9e0c25e
+        filename: music-player-coverage.json
+        label: coverage
+        message: 95%
+        color: brightgreen
