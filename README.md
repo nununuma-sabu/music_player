@@ -120,8 +120,8 @@
     python3 -m pytest --cov=core --cov=ui --cov-report=html tests/
     ```
 
-楽曲データの再生までは実装
-![再生中](music_player/docs/images/シークバー実装.png)
+最低限の機能を備えたプロトタイプまでは実装
+![再生中](music_player/docs/images/ガワはほぼ完成.png)
 ---
 
 ## 🚀 セットアップ
