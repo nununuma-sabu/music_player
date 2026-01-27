@@ -26,7 +26,7 @@ def main():
     app = QApplication(sys.argv)
 
     # 1. 検証したいファイルパスを指定
-    target_file = "../../KiLLKiSS.flac"
+    target_file = "test.flac"
     binary_data = get_art_binary(target_file)
 
     if not binary_data:
