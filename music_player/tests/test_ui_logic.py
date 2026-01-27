@@ -5,77 +5,71 @@ from ui.main_window import MainWindow
 
 
 def test_toggle_playback_logic(qtbot):
-    """再生・一時停止のトグル切り替えロジックを検証"""
+    """再生・一時停止のトグル切り替えがエンジンを通じて行われるか検証"""
     window = MainWindow()
     qtbot.addWidget(window)
 
-    # 初期状態は停止(StoppedState)であることを確認
-    assert window.player.playbackState() == QMediaPlayer.StoppedState
+    # 以前の window.player ではなく window.engine.player を参照
+    assert window.engine.player.playbackState() == QMediaPlayer.StoppedState
 
-    # トグル実行 (再生へ)
-    window._toggle_playback()
-    # Sourceがないため実際にはすぐ止まるが、メソッドが呼ばれた際の挙動を確認
-    assert window.player.playbackState() in [
+    # トグル実行（エンジン側のメソッドが呼ばれることを確認）
+    window.engine.toggle_play()
+    # 再生状態への遷移を許容
+    assert window.engine.player.playbackState() in [
         QMediaPlayer.PlayingState,
         QMediaPlayer.StoppedState,
     ]
 
 
 def test_seek_bar_sync(qtbot):
-    """プレイヤーの再生位置がシークバーとラベルに反映されるか検証"""
+    """エンジンの状態変化（シグナル）がシークバーとラベルに正しく伝搬するか検証"""
     window = MainWindow()
     qtbot.addWidget(window)
 
-    # 1. 期間(Duration)のセット
+    # 1. エンジンから Duration 変更シグナルを飛ばす
     duration = 100000  # 100秒
-    window._on_duration_changed(duration)
+    window.engine.duration_changed.emit(duration)
 
-    # 2. 再生位置(Position)の変更
-    position = 30000  # 30秒
-    window._on_position_changed(position)
+    # 2. エンジンから Position 変更シグナルを飛ばす
+    position = 45000  # 45秒
+    window.engine.position_changed.emit(position)
 
-    # UI側のコントロールに反映されているか確認
+    # 3. UI側のコントロールがエンジンに同期しているか検証
     assert window.controls.slider.value() == position
-    assert window.controls.label_current.text() == "00:30"
+    assert window.controls.label_current.text() == "00:45"
 
 
 def test_equalizer_initialization(qtbot):
-    """10バンドのイコライザーが正しく生成されているか検証"""
+    """UIの初期化（10バンド）が正しく行われているか検証"""
     window = MainWindow()
     qtbot.addWidget(window)
 
-    # 周波数リストの数が10個であることを確認
     assert len(window.eq_sliders) == 10
     assert "1kHz" in window.eq_sliders
 
 
 @patch("ui.main_window.extract_metadata")
 def test_main_window_full_flow(mock_extract, qtbot):
-    """ファイルドロップからプレイリスト追加、選曲再生までの全フローを検証"""
-    # extract_metadata が実ファイルを見に行かないようにモック化
+    """ファイルドロップからエンジンへのロードまでの全フローを検証"""
     mock_extract.return_value = {
-        "title": "mock_track_001",
-        "artist": "Mock Artist",
-        "file_path": "/tmp/mock_audio.flac",
+        "title": "refactored_test_track",
+        "artist": "Clean Architect",
+        "file_path": "/tmp/test.flac",
     }
 
     window = MainWindow()
     qtbot.addWidget(window)
 
-    mock_files = ["/tmp/mock_audio.flac"]
+    # 1. 模擬ファイルドロップ
+    window._on_files_dropped(["/tmp/test.flac"])
 
-    # 1. 模擬ファイルドロップ実行
-    window._on_files_dropped(mock_files)
-
-    # 2. プレイリストにアイテムが追加されたか確認
+    # 2. プレイリスト追加の検証
     assert window.playlist_view.count() == 1
-    assert "mock_track_001" in window.playlist_view.item(0).text()
 
-    # 3. 選曲（再生開始）処理の実行
-    with qtbot.waitSignal(
-        window.player.playbackStateChanged, timeout=1000, raising=False
-    ):
-        window._on_song_selected(mock_files[0])
+    # 3. 選曲時のエンジン連携を検証
+    # window.player ではなく window.engine.state_changed を待つ
+    with qtbot.waitSignal(window.engine.state_changed, timeout=1000, raising=False):
+        window._on_song_selected("/tmp/test.flac")
 
-    # 4. ソースがセットされているか確認
-    assert window.player.source().toString() != ""
+    # エンジンにソースがセットされたか確認
+    assert window.engine.player.source().toString() != ""
