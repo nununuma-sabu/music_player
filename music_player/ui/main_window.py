@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QTabWidget
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtCore import QUrl, Qt
 from .components.eq_slider import EqSlider
@@ -25,6 +25,10 @@ class MainWindow(QMainWindow):
 
         # タブウィジェットの作成
         self.tabs = QTabWidget()
+        # タブ全体の背景も念のため指定
+        self.tabs.setStyleSheet(
+            "QTabWidget::pane { background-color: #121212; border: none; }"
+        )
 
         # --- Playlist タブ ---
         self.playlist_container = QWidget()
@@ -38,9 +42,44 @@ class MainWindow(QMainWindow):
 
         # --- Equalizer タブ ---
         self.eq_container = QWidget()
-        self.eq_layout = QVBoxLayout(self.eq_container)
-        self.eq_slider = EqSlider(frequency="1kHz")
-        self.eq_layout.addWidget(self.eq_slider)
+        self.eq_container.setObjectName("eqContainer")
+
+        # 【解決の鍵1】属性を有効化
+        self.eq_container.setAttribute(Qt.WA_StyledBackground)
+        # 【解決の鍵2】インラインスタイルで強制的に背景を黒くし、中身のSliderも透かす
+        self.eq_container.setStyleSheet(
+            """
+            #eqContainer { 
+                background-color: #121212; 
+            }
+            QWidget { 
+                background-color: transparent; 
+            }
+        """
+        )
+
+        self.eq_layout = QHBoxLayout(self.eq_container)
+        self.eq_layout.setContentsMargins(20, 20, 20, 20)
+        self.eq_layout.setSpacing(10)
+
+        frequencies = [
+            "31Hz",
+            "62Hz",
+            "125Hz",
+            "250Hz",
+            "500Hz",
+            "1kHz",
+            "2kHz",
+            "4kHz",
+            "8kHz",
+            "16kHz",
+        ]
+
+        self.eq_sliders = {}
+        for freq in frequencies:
+            slider = EqSlider(frequency=freq)
+            self.eq_layout.addWidget(slider)
+            self.eq_sliders[freq] = slider
 
         self.tabs.addTab(self.playlist_container, "Playlist")
         self.tabs.addTab(self.eq_container, "Equalizer")
@@ -60,26 +99,15 @@ class MainWindow(QMainWindow):
 
         # シグナルとスロットの接続
         self.drop_zone.filesDropped.connect(self._on_files_dropped)
-
-        # --- 修正ポイント：統合した再生・一時停止ボタンの接続 ---
         self.controls.playPauseClicked.connect(self._toggle_playback)
         self.controls.stopClicked.connect(self.player.stop)
-        self.controls.skipForwardClicked.connect(self.player.stop)  # 仮
-        self.controls.skipBackwardClicked.connect(self.player.stop)  # 仮
-
-        # --- 追加ポイント：プレイヤーの状態を監視してアイコンを自動更新 ---
         self.player.playbackStateChanged.connect(self.controls.update_playback_icons)
-
-        # シークバーの同期接続
         self.player.positionChanged.connect(self._on_position_changed)
         self.player.durationChanged.connect(self._on_duration_changed)
         self.controls.seekRequested.connect(self.player.setPosition)
-
-        # プレイリストの選曲シグナルを接続
         self.playlist_view.songSelected.connect(self._on_song_selected)
 
     def _toggle_playback(self):
-        """再生と一時停止を切り替える"""
         if self.player.playbackState() == QMediaPlayer.PlayingState:
             self.player.pause()
         else:

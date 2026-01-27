@@ -1,0 +1,4 @@
+QMainWindow #eqContainer {
+    background-color: #121212;
+    border: 1px solid #333; /* 境界線を薄く入れるとより高級感が出ます */
+}
