@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget
 from PySide6.QtCore import QUrl, Qt
 from PySide6.QtGui import QIcon
+from PySide6.QtMultimedia import QMediaPlayer
 from .components.eq_slider import EqSlider
 from .components.player_controls import PlayerControls
 from .components.drop_zone import DropZone
@@ -130,6 +131,9 @@ class MainWindow(QMainWindow):
         # Deleteキー・右クリック共通の削除処理を接続
         self.playlist_view.songDeleted.connect(self._on_delete_song)
 
+        # メディア状態の監視を接続
+        self.engine.media_status_changed.connect(self._on_media_status_changed)
+
     def _on_files_dropped(self, files):
         """ファイルが選択・ドロップされた時の処理"""
         if not files:
@@ -181,3 +185,25 @@ class MainWindow(QMainWindow):
             # 3. 削除した曲が今再生中の曲だった場合の処理（任意）
             # 必要に応じて停止させる、あるいは次の曲へ移るロジックを追加できます
             print(f"Deleted: {removed_song.get('title')}")
+
+    def _on_media_status_changed(self, status):
+        """再生終了を検知して次の曲へ"""
+        if status == QMediaPlayer.MediaStatus.EndOfMedia:
+            self._play_next_song()
+
+    def _play_next_song(self):
+        """プレイリストの次の曲を再生するロジック"""
+        current_row = self.playlist_view.currentRow()
+        next_row = current_row + 1
+
+        # リストの末尾でなければ次を再生
+        if next_row < self.playlist_view.count():
+            self.playlist_view.setCurrentRow(next_row)
+            item = self.playlist_view.item(next_row)
+            file_path = item.data(Qt.UserRole)
+
+            # メタデータ抽出と再生開始
+            metadata = extract_metadata(file_path)
+            if metadata:
+                self.engine.load_song(file_path)
+                self.controls.update_song_info(metadata["title"], metadata["artist"])

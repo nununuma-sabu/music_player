@@ -11,11 +11,17 @@ class AudioEngine(QObject):
     state_changed = Signal(QMediaPlayer.PlaybackState)
     metadata_updated = Signal(dict)
 
+    # 新しいシグナル：メディアの状態（終了など）を通知
+    media_status_changed = Signal(QMediaPlayer.MediaStatus)
+
     def __init__(self):
         super().__init__()
         self.player = QMediaPlayer()
         self.audio_output = QAudioOutput()
         self.player.setAudioOutput(self.audio_output)
+
+        # メディア状態の変化を監視
+        self.player.mediaStatusChanged.connect(self.media_status_changed.emit)
 
         # プレイヤーの信号をエンジンのシグナルへリレー
         self.player.positionChanged.connect(self.position_changed.emit)
