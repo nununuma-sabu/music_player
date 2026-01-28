@@ -127,6 +127,9 @@ class MainWindow(QMainWindow):
         # ★ 起動時のスライダー値をエンジンに即時反映させる
         self.engine.set_volume(self.controls.volume_slider.value())
 
+        # Deleteキー・右クリック共通の削除処理を接続
+        self.playlist_view.songDeleted.connect(self._on_delete_song)
+
     def _on_files_dropped(self, files):
         """ファイルが選択・ドロップされた時の処理"""
         if not files:
@@ -165,3 +168,16 @@ class MainWindow(QMainWindow):
     def _on_position_changed(self, position):
         """再生位置が変更された時のUI更新"""
         self.controls.update_position(position, self.engine.player.duration())
+
+    def _on_delete_song(self, index):
+        """プレイリストから曲を削除する処理"""
+        # 1. データモデルから削除
+        removed_song = self.playlist_manager.remove_song(index)
+
+        if removed_song:
+            # 2. UI表示（QListWidget）から削除
+            self.playlist_view.takeItem(index)
+
+            # 3. 削除した曲が今再生中の曲だった場合の処理（任意）
+            # 必要に応じて停止させる、あるいは次の曲へ移るロジックを追加できます
+            print(f"Deleted: {removed_song.get('title')}")

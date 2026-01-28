@@ -1,58 +1,82 @@
-from PySide6.QtWidgets import QListWidget, QListWidgetItem
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QListWidget, QListWidgetItem, QMenu
+from PySide6.QtCore import Signal, Qt
+from PySide6.QtGui import QKeyEvent, QAction
 
 
 class PlaylistView(QListWidget):
-    """
-    プレイリストを表示するウィジェット
-    """
+    """プレイリストを表示するウィジェット"""
 
-    # 曲が選択されたことを知らせる独自のシグナル（メタデータ辞書を渡す）
     songSelected = Signal(str)
+    # 削除操作が行われた際に、そのインデックスを通知するシグナル
+    songDeleted = Signal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setAlternatingRowColors(True)
+        self.itemDoubleClicked.connect(self._on_item_double_clicked)
+
+        # スタイル設定
         self.setStyleSheet(
             """
             QListWidget {
-                background-color: #252525;
-                border: 1px solid #444;
+                background-color: #1a1a1a;
+                border: 1px solid #333;
                 border-radius: 5px;
-                color: #e0e0e0;
+                color: #ddd;
                 font-size: 13px;
                 outline: none;
             }
             QListWidget::item {
-                padding: 12px;
-                border-bottom: 1px solid #333;
-            }
-            QListWidget::item:hover {
-                background-color: #2a2a2a;
+                padding: 10px;
+                border-bottom: 1px solid #222;
             }
             QListWidget::item:selected {
-                background-color: #333;
-                color: #00d1b2;
-                border-left: 3px solid #00d1b2;
+                background-color: #2c2c2c;
+                color: #00f2c3;
+                border-left: 3px solid #00f2c3;
+            }
+            QListWidget::item:hover {
+                background-color: #252525;
             }
         """
         )
-        # ダブルクリックイベントを内部メソッドに接続
-        self.itemDoubleClicked.connect(self._on_item_double_clicked)
 
-    def add_song_item(self, metadata):
-        """メタデータを受け取り、リストに行を追加する"""
-        # 表示形式: "曲名 - アーティスト"
-        display_text = f"{metadata['title']}  /  {metadata['artist']}"
-        item = QListWidgetItem(display_text)
+    def keyPressEvent(self, event: QKeyEvent):
+        """Deleteキーによる削除対応"""
+        if event.key() == Qt.Key_Delete:
+            current_row = self.currentRow()
+            if current_row >= 0:
+                self.songDeleted.emit(current_row)
+        else:
+            super().keyPressEvent(event)
 
-        # ユーザーには見えないが、内部データとしてファイルパスを保持させておく
-        item.setData(Qt.UserRole, metadata["file_path"])
+    def contextMenuEvent(self, event):
+        """右クリックメニューの作成と表示"""
+        item = self.itemAt(event.pos())
+        if not item:
+            return
 
-        self.addItem(item)
+        menu = QMenu(self)
+        # スタイルの適用（ダークテーマに合わせる）
+        menu.setStyleSheet(
+            """
+            QMenu { background-color: #2b2b2b; color: white; border: 1px solid #333; }
+            QMenu::item:selected { background-color: #3d3d3d; }
+        """
+        )
+
+        delete_action = QAction("削除", self)
+        delete_action.triggered.connect(lambda: self.songDeleted.emit(self.row(item)))
+        menu.addAction(delete_action)
+
+        menu.exec(event.globalPos())
 
     def _on_item_double_clicked(self, item):
-        # アイテムからファイルパスを回収
         file_path = item.data(Qt.UserRole)
-        # シグナルを発火して MainWindow へ通知
         self.songSelected.emit(file_path)
+
+    def add_song_item(self, metadata):
+        title = metadata.get("title", "Unknown")
+        artist = metadata.get("artist", "Unknown")
+        item = QListWidgetItem(f"{title} - {artist}")
+        item.setData(Qt.UserRole, metadata["file_path"])
+        self.addItem(item)
