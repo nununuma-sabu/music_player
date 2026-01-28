@@ -128,12 +128,32 @@ class MainWindow(QMainWindow):
         self.engine.set_volume(self.controls.volume_slider.value())
 
     def _on_files_dropped(self, files):
-        """ファイルがドロップされた時の処理"""
+        """ファイルが選択・ドロップされた時の処理"""
+        if not files:
+            return
+
+        # 今回追加された曲の中の「最初の有効な曲」を即再生するためのフラグ
+        first_valid_metadata = None
+        # 追加前のプレイリストの末尾インデックスを保持
+        start_row = self.playlist_view.count()
+
         for f in files:
             metadata = extract_metadata(f)
             if metadata:
                 self.playlist_manager.add_song(metadata)
                 self.playlist_view.add_song_item(metadata)
+                # 最初に読み込みに成功した曲を保持しておく
+                if first_valid_metadata is None:
+                    first_valid_metadata = metadata
+
+        # 仕様に基づき、選択された楽曲の1曲目を即再生する
+        if first_valid_metadata:
+            self.engine.load_song(first_valid_metadata["file_path"])
+            self.controls.update_song_info(
+                first_valid_metadata["title"], first_valid_metadata["artist"]
+            )
+            # UI側のハイライトを追加された曲の先頭に合わせる
+            self.playlist_view.setCurrentRow(start_row)
 
     def _on_song_selected(self, file_path):
         """プレイリストで曲が選択された時の処理"""
