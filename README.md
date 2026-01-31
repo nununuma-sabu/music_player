@@ -5,47 +5,51 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-「車輪の再発明」を通じて、デジタルオーディオ信号処理とマルチ言語アーキテクチャを深く理解することを目的とした音楽再生アプリケーションです。
+「車輪の再発明」を通じて、デジタルオーディオ信号処理と Python による高度な GUI 構築を深く理解することを目的とした音楽再生アプリケーションです。
 
-一般的な音楽プレイヤーが提供するデータベース管理機能をあえて排除し、「音の解析と加工（イコライザー）」という信号処理の核心部分に注力した設計を行っています。
+一般的な音楽プレイヤーの利便性よりも、「音そのものの解析と加工（イコライザー）」というエンジニアリングの核心に注力した設計を行っています。
 
 ---
 
 ## 🎨 コンセプト
-- **信号処理の可視化**: 高速フーリエ変換（FFT）を用いたリアルタイム・スペクトラムアナライザーの実装。
-- **ピュアなユーザー体験**: データベースレスな設計。ドラッグ＆ドロップによるオンメモリなキュー管理に特化。
+- **ピュア Python による高度な信号処理**: UI から DSP までを Python で一貫して開発。NumPy や Numba を活用し、ネイティブ言語に匹敵する計算速度の実現を目指します。
+- **テスタビリティの追求**: ロジックと表示を厳密に分離。複雑な GUI コンポーネントを含め、90% 以上のユニットテストカバレッジを維持。
+- **エンジニアのための UI**: ドラッグ＆ドロップによるオンメモリなキュー管理と、10バンド・リアルタイム・イコライザーの搭載。
 
 ---
 
 ## 🛠 技術スタック
-- **GUI**: Python 3.x / PySide6 (Qt for Python)
-- **Signal Processing Engine**: ???
-- **Metadata**: Mutagen (ID3, Vorbis, etc.), Pillow (Image processing)
-- **Environment**: WSL2 (Ubuntu) / Development target is Native App
+- **GUI**: PySide6 (Qt for Python)
+- **DSP / Signal Processing**: 
+    - **NumPy**: ベクトル演算による高速な信号処理。
+    - **Numba (Planned)**: LLVM JIT コンパイルを用いた DSP エンジンの高速化。
+- **Metadata**: Mutagen (MP3 / FLAC / OGG 対応)
+- **Testing**: pytest / pytest-qt / coverage
 
 ---
 
 ## 🏗 アーキテクチャ
-高レイヤ（UI）、ミドルレイヤ（Core/Logic）、低レイヤ（Engine）を明確に分離しています。
+「疎結合・高凝集」をテーマに、以下の 2 レイヤ構成を採用しています。
 
-### 1. Python UI Layer
-- **PySide6**: ダークモードを基調としたネイティブUI。各パーツをコンポーネント化。
-- **SVG Icons**: OS環境に依存しない、スケーラブルなグラフィック表現。
+### 1. Presentation Layer (UI)
+- **Component-based architecture**: 各スライダーやコントロールを独立したクラスとして実装し、保守性を向上。
+- **Custom Styling**: QSS によるダークモードおよびモダンなデザインの適用。
 
-### 2. Python Core Layer
-- **Metadata Handler**: `mutagen` を用いたメタデータ抽出。MP3やFLACなどのマルチフォーマットに対応。
-- **Logic Isolation**: UIからロジックを分離し、ユニットテストが可能な設計を採用。
+### 2. Logic & Engine Layer (Core)
+- **Audio Engine**: `QtMultimedia` をバックエンドとしつつ、信号バッファへの介入が可能な拡張性を確保。
+- **Metadata Handler**: マルチフォーマット対応のメタデータ抽出およびアルバムアート処理。
 
 ---
 
 ## 📈 現在の実装状況
-- [x] PySide6を用いたダークモードGUIの構築
-- [x] 各種コンポーネント（Slider, Controls, DropZone）のモジュール化
-- [x] ファイル選択ダイアログの実装（WSL2環境でのWindowsファイルアクセス対応）
-- [x] Mutagenによるメタデータ抽出ロジックの実装（MP3/FLAC対応）
-- [x] 信号処理ロジックの分離・リファクタリング
-- [ ] プレイリスト表示機能の実装
-- [ ] リアルタイム・イコライザーの実装
+- [x] PySide6 によるダークモード GUI の構築
+- [x] プレイリストの動的管理（ドラッグ＆ドロップ、楽曲削除、自動連続再生）
+- [x] アルバムアート表示およびメタデータ抽出（いらすとや素材連携）
+- [x] ユニットテストの導入とカバレッジ管理（現在 94%）
+- [ ] 10バンド・イコライザーの信号処理ロジック実装（NumPy/Numba 連携）
+- [ ] FFT（高速フーリエ変換）を用いたリアルタイム・スペクトラムアナライザー
+
+--- 
 
 ## 📅 [2026-01-31] アルバムアート表示機能の追加
 
