@@ -90,3 +90,32 @@ def test_clickable_slider_direct_jump(qtbot):
     # スタイルの余白等により多少の前後があるため、範囲で検証
     assert 45 <= slider.value() <= 55
     assert 45 <= blocker.args[0] <= 55
+
+
+def test_playlist_view_delete_key(qtbot):
+    """Deleteキーによる削除シグナル発火を検証"""
+    view = PlaylistView()
+    qtbot.addWidget(view)
+
+    # テストデータ追加
+    view.add_song_item({"title": "DeleteMe", "artist": "Artist", "file_path": "path"})
+    view.setCurrentRow(0)
+
+    # Deleteキー押下時に songDeleted シグナルが飛ぶか
+    with qtbot.waitSignal(view.songDeleted, timeout=1000) as blocker:
+        qtbot.keyClick(view, Qt.Key_Delete)
+
+    assert blocker.args[0] == 0
+
+
+def test_playlist_view_context_menu(qtbot):
+    """右クリックメニュー（コンテキストメニュー）イベントの通過を検証"""
+    view = PlaylistView()
+    qtbot.addWidget(view)
+    view.add_song_item({"title": "MenuTest", "artist": "Artist", "file_path": "path"})
+
+    # メニューイベントを直接呼び出し（正常終了を確認）
+    from PySide6.QtGui import QContextMenuEvent
+
+    event = QContextMenuEvent(QContextMenuEvent.Mouse, QPoint(5, 5), QPoint(5, 5))
+    view.contextMenuEvent(event)  # エラーが出ないことの確認

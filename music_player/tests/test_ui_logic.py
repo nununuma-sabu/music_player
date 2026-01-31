@@ -104,3 +104,37 @@ def test_main_window_full_flow(mock_extract, qtbot):
     # 4. 表示の検証
     assert "TEST_TRACK_001" in window.controls.info_label.text()
     assert "MOCK_ARTIST_ALPHA" in window.controls.info_label.text()
+
+
+def test_auto_play_next_song(qtbot):
+    """再生終了時に自動で次の曲へ遷移するか検証"""
+    window = MainWindow()
+    qtbot.addWidget(window)
+
+    # 2曲追加
+    window._on_files_dropped(["song1.mp3", "song2.mp3"])
+    window.playlist_view.setCurrentRow(0)
+
+    # 疑似的に EndOfMedia ステータスを送信
+    from PySide6.QtMultimedia import QMediaPlayer
+
+    window.engine.media_status_changed.emit(QMediaPlayer.MediaStatus.EndOfMedia)
+
+    # 次の行が選択されているか
+    assert window.playlist_view.currentRow() == 1
+
+
+def test_manual_skip_logic(qtbot):
+    """スキップボタンのクリックが正しくインデックス操作に繋がるか検証"""
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window._on_files_dropped(["song1.mp3", "song2.mp3"])
+    window.playlist_view.setCurrentRow(0)
+
+    # 進むボタン発火（シグナルを直接emit）
+    window.controls.skipForwardClicked.emit()
+    assert window.playlist_view.currentRow() == 1
+
+    # 戻るボタン発火
+    window.controls.skipBackwardClicked.emit()
+    assert window.playlist_view.currentRow() == 0
