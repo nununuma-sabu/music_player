@@ -23,36 +23,44 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        # Ubuntu 24.04 (Noble) では libasound2 が libasound2t64 に変更されています
-        # また、DEBIAN_FRONTEND=noninteractive を指定して対話プロンプトを防止します
+        # Ubuntu 24.04 (Noble) で Qt6 を動かすための「完全版」依存リスト
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
           xvfb \
+          libxcb-util1 \
+          libx11-xcb1 \
+          libxcb-icccm4 \
+          libxcb-image0 \
+          libxcb-keysyms1 \
+          libxcb-randr0 \
+          libxcb-render-util0 \
+          libxcb-shape0 \
+          libxcb-xfixes0 \
+          libxcb-xinerama0 \
+          libxcb-xinput0 \
+          libxcb-shm0 \
+          libxcb-cursor0 \
+          libxkbcommon-x11-0 \
           libegl1 \
           libgl1 \
           libpulse0 \
           libasound2t64 \
           libnss3 \
-          libgbm1 \
-          libxcb-cursor0 \
-          libxkbcommon-x11-0 \
-          libxcb-icccm4 \
-          libxcb-image0 \
-          libxcb-keysyms1 \
-          libxcb-render-util0 \
-          libxcb-xinerama0 \
-          libxcb-xinput0
+          libgbm1
         python -m pip install --upgrade pip
         pip install PySide6 pytest pytest-qt pytest-cov mutagen
 
     - name: Run tests with coverage
       env:
-        # xvfb を使用するためプラットフォームを xcb に設定
         QT_QPA_PLATFORM: xcb
+        # クラッシュ防止: ソフトウェアレンダリングを強制
+        QT_OPENGL: software
+        # デバッグ用: もし失敗した時に詳細なログを出す
+        QT_DEBUG_PLUGINS: 1
         PYTHONPATH: .
       working-directory: ./music_player
       run: |
-        # xvfb-run を使用して仮想ディスプレイ上でテストを実行し、ハングアップを防止します
-        xvfb-run python3 -m pytest --color=no --cov=core --cov=ui tests/ --cov-report=term-missing | tee ../pytest-coverage.txt
+        # --auto-servernum を付けてディスプレイ番号の衝突を避ける
+        xvfb-run --auto-servernum python3 -m pytest --color=no --cov=core --cov=ui tests/ --cov-report=term-missing | tee ../pytest-coverage.txt
 
     - name: Extract Coverage Percentage
       id: extract_coverage
