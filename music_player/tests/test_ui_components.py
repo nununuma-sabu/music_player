@@ -102,3 +102,84 @@ def test_clickable_slider_direct_jump(qtbot):
         qtbot.mouseClick(slider, Qt.LeftButton, pos=QPoint(100, 10))
 
     assert slider.value() > 0
+
+
+def test_clickable_slider_hover_and_leave(qtbot):
+    """ClickableSlider のホバー検知とマウス離脱イベントを検証"""
+    slider = ClickableSlider(Qt.Horizontal)
+    slider.setRange(0, 100)
+    slider.resize(200, 20)
+    slider.show()  # イベントを確実に届けるため表示
+    qtbot.addWidget(slider)
+    qtbot.waitExposed(slider)
+
+    # 1. ホバー時のシグナル発火を検証
+    with qtbot.waitSignal(slider.hoveredValue, timeout=1000) as blocker:
+        qtbot.mouseMove(slider, QPoint(100, 10))
+
+    value, pos = blocker.args
+    assert 45 <= value <= 55  # 中央付近の値
+    assert isinstance(pos, QPoint)
+
+    # 2. マウス離脱時にツールチップが隠れるか（エラーが出ないか）検証
+    # leaveEvent を直接叩いてカバレッジを通す
+    from PySide6.QtGui import QHelpEvent
+
+    event = QHelpEvent(QPoint(0, 0), QPoint(0, 0))  # ダミーイベント
+    slider.leaveEvent(event)
+
+
+def test_clickable_slider_vertical_calculation(qtbot):
+    """垂直方向のスライダーでも座標計算が正しく行われるか検証"""
+    slider = ClickableSlider(Qt.Vertical)
+    slider.setRange(0, 100)
+    slider.resize(20, 200)
+    slider.show()
+    qtbot.addWidget(slider)
+    qtbot.waitExposed(slider)
+
+    # 垂直スライダーの下側（値が大きい方）をクリック
+    # QSlider(Vertical) は下が最大値、上が最小値
+    qtbot.mouseClick(slider, Qt.LeftButton, pos=QPoint(10, 180))
+    assert slider.value() > 80
+
+
+def test_player_controls_tooltip_display(qtbot):
+    """PlayerControls が適切な文字列でツールチップを表示するか検証"""
+    controls = PlayerControls()
+    qtbot.addWidget(controls)
+
+    # ロジックを通すために最大値を設定
+    controls.slider.setRange(0, 1000)
+
+    # 1. 再生時間ホバー
+    with patch("PySide6.QtWidgets.QToolTip.showText") as mock_tooltip:
+        controls._show_hover_time(500, QPoint(0, 0))
+        mock_tooltip.assert_called_once()
+        assert "00:00" in mock_tooltip.call_args[0][1]
+
+    # 2. ボリュームホバー
+    with patch("PySide6.QtWidgets.QToolTip.showText") as mock_tooltip:
+        controls._show_hover_volume(80, QPoint(0, 0))
+        mock_tooltip.assert_called_once()
+        assert "Vol: 80%" == mock_tooltip.call_args[0][1]
+
+
+def test_playlist_view_context_menu_with_item(qtbot):
+    """アイテムが存在する状態でのコンテキストメニュー動作を検証"""
+    view = PlaylistView()
+    view.resize(200, 200)
+    view.show()
+    qtbot.addWidget(view)
+    qtbot.waitExposed(view)
+
+    # アイテムを追加
+    view.add_song_item({"title": "Test", "artist": "Artist", "file_path": "path"})
+
+    # アイテムがある場所（上端付近）を右クリック
+    from PySide6.QtGui import QContextMenuEvent
+
+    event = QContextMenuEvent(QContextMenuEvent.Mouse, QPoint(10, 10), QPoint(10, 10))
+
+    # 実行してもハングアップしない（menu.popup() を使っているため）ことを確認
+    view.contextMenuEvent(event)
