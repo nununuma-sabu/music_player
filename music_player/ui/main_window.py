@@ -117,6 +117,10 @@ class MainWindow(QMainWindow):
         self.controls.stopClicked.connect(self.engine.player.stop)
         self.controls.seekRequested.connect(self.engine.set_position)
 
+        # 修正ポイント: 進む・戻るボタンのシグナルを接続
+        self.controls.skipForwardClicked.connect(self._play_next_song)
+        self.controls.skipBackwardClicked.connect(self._play_prev_song)
+
         # エンジン -> UI状態同期
         self.engine.state_changed.connect(self.controls.update_playback_icons)
         self.engine.position_changed.connect(self._on_position_changed)
@@ -192,17 +196,33 @@ class MainWindow(QMainWindow):
             self._play_next_song()
 
     def _play_next_song(self):
-        """プレイリストの次の曲を再生するロジック"""
+        """プレイリストの次の曲を再生するロジック（ループ対応）"""
+        count = self.playlist_view.count()
+        if count == 0:
+            return
+
         current_row = self.playlist_view.currentRow()
-        next_row = current_row + 1
+        # リストの末尾なら最初に戻る
+        next_row = (current_row + 1) % count
+        self._play_at_index(next_row)
 
-        # リストの末尾でなければ次を再生
-        if next_row < self.playlist_view.count():
-            self.playlist_view.setCurrentRow(next_row)
-            item = self.playlist_view.item(next_row)
+    def _play_prev_song(self):
+        """プレイリストの前の曲を再生するロジック（ループ対応）"""
+        count = self.playlist_view.count()
+        if count == 0:
+            return
+
+        current_row = self.playlist_view.currentRow()
+        # リストの先頭なら最後に戻る
+        prev_row = (current_row - 1 + count) % count
+        self._play_at_index(prev_row)
+
+    def _play_at_index(self, index):
+        """共通のインデックス指定再生処理"""
+        self.playlist_view.setCurrentRow(index)
+        item = self.playlist_view.item(index)
+        if item:
             file_path = item.data(Qt.UserRole)
-
-            # メタデータ抽出と再生開始
             metadata = extract_metadata(file_path)
             if metadata:
                 self.engine.load_song(file_path)
