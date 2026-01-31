@@ -23,13 +23,14 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        # xvfb を追加し、DEBIAN_FRONTEND=noninteractive で対話待ちを防止
+        # Ubuntu 24.04 (Noble) では libasound2 が libasound2t64 に変更されています
+        # また、DEBIAN_FRONTEND=noninteractive を指定して対話プロンプトを防止します
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
           xvfb \
           libegl1 \
           libgl1 \
           libpulse0 \
-          libasound2 \
+          libasound2t64 \
           libnss3 \
           libgbm1 \
           libxcb-cursor0 \
@@ -45,23 +46,20 @@ jobs:
 
     - name: Run tests with coverage
       env:
-        QT_QPA_PLATFORM: xcb  # xvfb を使う場合は xcb に戻す
+        # xvfb を使用するためプラットフォームを xcb に設定
+        QT_QPA_PLATFORM: xcb
         PYTHONPATH: .
       working-directory: ./music_player
       run: |
-        # xvfb-run を使って仮想画面上でテストを実行
+        # xvfb-run を使用して仮想ディスプレイ上でテストを実行し、ハングアップを防止します
         xvfb-run python3 -m pytest --color=no --cov=core --cov=ui tests/ --cov-report=term-missing | tee ../pytest-coverage.txt
 
     - name: Extract Coverage Percentage
       id: extract_coverage
       run: |
-        # ルートディレクトリに出力された pytest-coverage.txt を読み込み
         COVERAGE=$(grep -i "^TOTAL" pytest-coverage.txt | grep -oE "[0-9]+%" | head -1 | tr -d '%')
-        
         if [ -z "$COVERAGE" ]; then COVERAGE="0"; fi
-        
         echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
-        echo "Checked Coverage: $COVERAGE%"
 
     - name: Generate Coverage Badge
       uses: schneegans/dynamic-badges-action@v1.7.0
