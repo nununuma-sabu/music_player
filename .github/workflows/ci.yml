@@ -23,12 +23,13 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        # libasound2 を libasound2t64 に変更し、Noble環境に対応
-        sudo apt-get install -y \
+        # xvfb を追加し、DEBIAN_FRONTEND=noninteractive で対話待ちを防止
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+          xvfb \
           libegl1 \
           libgl1 \
           libpulse0 \
-          libasound2t64 \
+          libasound2 \
           libnss3 \
           libgbm1 \
           libxcb-cursor0 \
@@ -44,13 +45,12 @@ jobs:
 
     - name: Run tests with coverage
       env:
-        QT_QPA_PLATFORM: offscreen
+        QT_QPA_PLATFORM: xcb  # xvfb を使う場合は xcb に戻す
         PYTHONPATH: .
-      # 実際のソースコードがあるディレクトリで実行するように合わせます
       working-directory: ./music_player
       run: |
-        # インポートパスに合わせて --cov の対象とテストディレクトリを調整
-        python3 -m pytest --color=no --cov=core --cov=ui tests/ --cov-report=term-missing | tee ../pytest-coverage.txt
+        # xvfb-run を使って仮想画面上でテストを実行
+        xvfb-run python3 -m pytest --color=no --cov=core --cov=ui tests/ --cov-report=term-missing | tee ../pytest-coverage.txt
 
     - name: Extract Coverage Percentage
       id: extract_coverage
