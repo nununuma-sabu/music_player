@@ -12,7 +12,6 @@
 ---
 
 ## 🎨 コンセプト
-- **適材適所のマルチ言語構成**: 高速な計算が必要な信号処理部はRust、柔軟なUI構築にはPython（PySide6）を採用。
 - **信号処理の可視化**: 高速フーリエ変換（FFT）を用いたリアルタイム・スペクトラムアナライザーの実装。
 - **ピュアなユーザー体験**: データベースレスな設計。ドラッグ＆ドロップによるオンメモリなキュー管理に特化。
 
@@ -20,8 +19,7 @@
 
 ## 🛠 技術スタック
 - **GUI**: Python 3.x / PySide6 (Qt for Python)
-- **Signal Processing Engine**: Rust (Planned: FFT, Equalizer)
-- **Binding**: PyO3 (Python/Rust bridge)
+- **Signal Processing Engine**: ???
 - **Metadata**: Mutagen (ID3, Vorbis, etc.), Pillow (Image processing)
 - **Environment**: WSL2 (Ubuntu) / Development target is Native App
 
@@ -38,10 +36,6 @@
 - **Metadata Handler**: `mutagen` を用いたメタデータ抽出。MP3やFLACなどのマルチフォーマットに対応。
 - **Logic Isolation**: UIからロジックを分離し、ユニットテストが可能な設計を採用。
 
-### 3. Rust Layer (Backend - Under Development)
-- **Performance**: SIMD等を意識した高速な信号処理ロジック。
-- **Bridge**: PyO3によるPythonモジュールとしての統合。
-
 ---
 
 ## 📈 現在の実装状況
@@ -51,7 +45,6 @@
 - [x] Mutagenによるメタデータ抽出ロジックの実装（MP3/FLAC対応）
 - [x] 信号処理ロジックの分離・リファクタリング
 - [ ] プレイリスト表示機能の実装
-- [ ] Rust製エンジンの統合
 - [ ] リアルタイム・イコライザーの実装
 
 ## 📅 [2026-01-31] アルバムアート表示機能の追加
@@ -79,7 +72,6 @@
 ## 📅 [2026-01-27]  リファクタリング実施
 * **リファクタリング（関心の分離）**: 
     * `MainWindow` から再生ロジックを分離し、`AudioEngine` クラスへ委譲。単一責任原則（SRP）に基づき、UIは「指揮官（配置・配線）」、エンジンは「心臓部（再生管理）」としての役割を明確化。
-    * メソッドの整理により、`MainWindow` の可読性と将来の Rust 連携における拡張性を大幅に向上。
 
 ## 📅 [2026-01-27]  タブの改善
 * **タブUIの視認性改善**: `QTabBar::tab:selected` に対する専用スタイルを実装。ミントグリーンのアクセントカラーと下線により、アクティブなタブを明確に判別可能に。
