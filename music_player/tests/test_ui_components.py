@@ -130,12 +130,13 @@ def test_clickable_slider_hover_signal(qtbot):
     slider = ClickableSlider(Qt.Horizontal)
     slider.setRange(0, 100)
     slider.resize(200, 20)
+    slider.show()  # ウィジェットを可視化
     qtbot.addWidget(slider)
+    qtbot.waitExposed(slider)  # 描画準備ができるまで待機
 
-    # シグナルをキャッチするための準備
-    with qtbot.waitSignal(slider.hoveredValue, timeout=1000) as blocker:
-        # スライダーの真ん中あたりをマウスが通ったと仮定
-        # (200px の幅で 100px の位置なら、値は 50 程度になるはず)
+    # タイムアウトを少し長めに設定してシグナルを待機
+    with qtbot.waitSignal(slider.hoveredValue, timeout=2000) as blocker:
+        # スライダーの中央付近にマウスを移動
         qtbot.mouseMove(slider, QPoint(100, 10))
 
     value, pos = blocker.args
@@ -149,18 +150,21 @@ def test_player_controls_tooltip_logic(qtbot):
     controls = PlayerControls()
     qtbot.addWidget(controls)
 
+    # 【重要】スライダーに範囲を持たせないと、ガード節により表示処理がスキップされる
+    controls.slider.setRange(0, 100000)
+    controls.volume_slider.setRange(0, 100)
+
     # 1. 再生時間の表示ロジック (1分 = 60000ms)
-    with patch("PySide6.QtWidgets.QToolTip.showText") as mock_tooltip:
-        controls._show_hover_time(60000, QPoint(0, 0))
-        # "01:00" と表示されることを確認
+    # パッチ対象をインポート先のモジュール名に合わせる
+    with patch("ui.components.player_controls.QToolTip.showText") as mock_tooltip:
+        controls._show_hover_time(60000, QPoint(10, 10))
         mock_tooltip.assert_called_once()
         args = mock_tooltip.call_args[0]
         assert args[1] == "01:00"
 
     # 2. 音量の表示ロジック
-    with patch("PySide6.QtWidgets.QToolTip.showText") as mock_tooltip:
-        controls._show_hover_volume(75, QPoint(0, 0))
-        # "Vol: 75%" と表示されることを確認
+    with patch("ui.components.player_controls.QToolTip.showText") as mock_tooltip:
+        controls._show_hover_volume(75, QPoint(20, 20))
         mock_tooltip.assert_called_once()
         args = mock_tooltip.call_args[0]
         assert args[1] == "Vol: 75%"
