@@ -1,6 +1,14 @@
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget
+import os
+from PySide6.QtWidgets import (
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QTabWidget,
+    QLabel,
+)
 from PySide6.QtCore import QUrl, Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QPixmap, QImage
 from PySide6.QtMultimedia import QMediaPlayer
 from .components.eq_slider import EqSlider
 from .components.player_controls import PlayerControls
@@ -32,6 +40,19 @@ class MainWindow(QMainWindow):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
+
+        # --- アルバムアート表示エリア ---
+        self.art_label = QLabel()
+        self.art_label.setFixedSize(240, 240)
+        self.art_label.setAlignment(Qt.AlignCenter)
+        self.art_label.setStyleSheet(
+            "border: 1px solid #333; background-color: #1a1a1a; border-radius: 10px;"
+        )
+
+        # 起動直後に「いらすとや」画像をセット
+        self._set_default_art()
+
+        self.main_layout.addWidget(self.art_label, alignment=Qt.AlignCenter)
 
         self.tabs = QTabWidget()
 
@@ -76,6 +97,19 @@ class MainWindow(QMainWindow):
         self.main_layout.addWidget(self.tabs)
         self.main_layout.addWidget(self.controls)
 
+    def _set_default_art(self):
+        """「いらすとや」などのデフォルト画像をセットする"""
+        default_path = get_asset_path("styles/icons/default_art.png")
+        if os.path.exists(default_path):
+            pixmap = QPixmap(default_path)
+            self.art_label.setPixmap(
+                pixmap.scaled(
+                    self.art_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
+                )
+            )
+        else:
+            self.art_label.setText("No Image")
+
     def _apply_styles(self):
         self.tabs.setStyleSheet(
             """
@@ -99,7 +133,6 @@ class MainWindow(QMainWindow):
         self.controls.stopClicked.connect(self.engine.player.stop)
         self.controls.seekRequested.connect(self.engine.set_position)
 
-        # 進む・戻るボタンの接続
         self.controls.skipForwardClicked.connect(self._play_next_song)
         self.controls.skipBackwardClicked.connect(self._play_prev_song)
 
@@ -114,20 +147,24 @@ class MainWindow(QMainWindow):
     def _on_files_dropped(self, files):
         if not files:
             return
+
+        # 追加前の行数を保持（最初に追加される曲のインデックスになる）
         start_row = self.playlist_view.count()
-        first_valid_metadata = None
+        first_valid_path = None
 
         for f in files:
             metadata = extract_metadata(f)
             if metadata:
                 self.playlist_manager.add_song(metadata)
                 self.playlist_view.add_song_item(metadata)
-                if first_valid_metadata is None:
-                    first_valid_metadata = metadata
+                # 今回ドロップされた中で最初の有効なファイルを記録
+                if first_valid_path is None:
+                    first_valid_path = metadata["file_path"]
 
-        if first_valid_metadata:
-            self._play_song_at_path(first_valid_metadata["file_path"])
+        # 追加された最初の曲を自動的にロードして再生
+        if first_valid_path:
             self.playlist_view.setCurrentRow(start_row)
+            self._play_song_at_path(first_valid_path)
 
     def _on_song_selected(self, file_path):
         self._play_song_at_path(file_path)
@@ -138,6 +175,21 @@ class MainWindow(QMainWindow):
         if metadata:
             self.engine.load_song(file_path)
             self.controls.update_song_info(metadata["title"], metadata["artist"])
+
+            # アルバムアートの更新
+            if metadata.get("album_art"):
+                image = QImage.fromData(metadata["album_art"])
+                pixmap = QPixmap.fromImage(image)
+                self.art_label.setPixmap(
+                    pixmap.scaled(
+                        self.art_label.size(),
+                        Qt.KeepAspectRatio,
+                        Qt.SmoothTransformation,
+                    )
+                )
+            else:
+                # 画像がない曲の場合はデフォルトに戻す
+                self._set_default_art()
 
     def _on_media_status_changed(self, status):
         if status == QMediaPlayer.MediaStatus.EndOfMedia:

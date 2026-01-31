@@ -19,6 +19,7 @@ def extract_metadata(file_path):
             "album": "Unknown Album",
             "composer": "Unknown Composer",
             "duration": int(audio.info.length),
+            "album_art": None,
         }
 
         # タグ情報の解析
@@ -30,13 +31,24 @@ def extract_metadata(file_path):
                 info["title"] = tags.get("TIT2", [info["title"]])[0]
                 info["artist"] = tags.get("TPE1", [info["artist"]])[0]
                 info["album"] = tags.get("TALB", [info["album"]])[0]
+                # APICタグ (Attached Picture) から取得
+                art = tags.getall("APIC")
+                if art:
+                    info["album_art"] = art[0].data
 
-            # FLAC, Vorbis Comment の場合
-            else:
+            # FLAC の場合
+            elif file_path.lower().endswith(".flac"):
                 info["title"] = tags.get("title", [info["title"]])[0]
                 info["artist"] = tags.get("artist", [info["artist"]])[0]
                 info["album"] = tags.get("album", [info["album"]])[0]
-                info["composer"] = tags.get("composer", [info["composer"]])[0]
+                # pictures属性から取得
+                if getattr(audio, "pictures", None):
+                    info["album_art"] = audio.pictures[0].data
+
+            # その他 (Vorbis等)
+            else:
+                info["title"] = tags.get("title", [info["title"]])[0]
+                info["artist"] = tags.get("artist", [info["artist"]])[0]
 
         return info
 
