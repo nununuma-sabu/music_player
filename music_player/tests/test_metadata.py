@@ -7,15 +7,22 @@ from core.metadata import extract_metadata
 # --- MP3のテスト ---
 def test_extract_metadata_mp3():
     mock_audio = MagicMock()
-    mock_audio.tags = {
+    # ID3オブジェクトのように .getall() メソッドを持つモックを作成
+    mock_tags = MagicMock()
+    tags_data = {
         "TIT2": ["Test MP3 Title"],
         "TPE1": ["Test MP3 Artist"],
         "TALB": ["Test MP3 Album"],
     }
+    # getall("TIT2") と呼ばれたら ["Test MP3 Title"] を返すように設定
+    mock_tags.getall.side_effect = lambda key: tags_data.get(key, [])
+
+    mock_audio.tags = mock_tags
     mock_audio.info.length = 180
 
     with patch("core.metadata.MutagenFile", return_value=mock_audio):
         info = extract_metadata("dummy.mp3")
+        assert info is not None
         assert info["title"] == "Test MP3 Title"
         assert info["artist"] == "Test MP3 Artist"
 
