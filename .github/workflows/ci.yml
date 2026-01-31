@@ -24,50 +24,44 @@ jobs:
       run: |
         sudo apt-get update
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-          xvfb \
-          libegl1 \
-          libgl1 \
-          libpulse0 \
-          libasound2t64 \
-          libnss3 \
-          libgbm1 \
-          libxcb-cursor0 \
-          libxkbcommon-x11-0 \
-          libxcb-icccm4 \
-          libxcb-image0 \
-          libxcb-keysyms1 \
-          libxcb-randr0 \
-          libxcb-render-util0 \
-          libxcb-shape0 \
-          libxcb-xfixes0 \
-          libxcb-xinerama0 \
-          libxcb-xinput0 \
-          libxcb-shm0 \
-          libxcb-util1 \
-          libx11-xcb1 \
-          libdbus-1-3
+          xvfb libegl1 libgl1 libpulse0 libasound2t64 libnss3 libgbm1 \
+          libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 \
+          libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
+          libxcb-xfixes0 libxcb-xinerama0 libxcb-xinput0 libxcb-shm0 \
+          libxcb-util1 libx11-xcb1 libdbus-1-3
         python -m pip install --upgrade pip
         pip install PySide6 pytest pytest-qt pytest-cov mutagen
 
     - name: Run tests with coverage
       env:
         QT_QPA_PLATFORM: xcb
-        # OpenGL のクラッシュを避けるための設定
         QT_OPENGL: software
-        # もしこれでも落ちたら、ログから原因（足りない.so）が特定できるようになります
         QT_DEBUG_PLUGINS: 1
         PYTHONPATH: .
       working-directory: ./music_player
       run: |
-        # 画面番号を自動生成してテスト実行
+        # 制御コード（エスケープシーケンス）を排除してテキスト抽出を確実にするため --color=no を追加
         xvfb-run --auto-servernum python3 -m pytest --color=no --cov=core --cov=ui tests/ --cov-report=term-missing | tee ../pytest-coverage.txt
 
-    - name: Extract Coverage Percentage
-      id: extract_coverage
+    - name: Extract Results
+      id: extract_results
       run: |
+        # 1. カバレッジの抽出
         COVERAGE=$(grep -i "^TOTAL" pytest-coverage.txt | grep -oE "[0-9]+%" | head -1 | tr -d '%')
         if [ -z "$COVERAGE" ]; then COVERAGE="0"; fi
-        echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
+        echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+
+        # 2. テスト結果の抽出 (例: 18/18 passed)
+        # collected X items から分母(TOTAL)を取得
+        TOTAL=$(grep -oE "collected [0-9]+ items" pytest-coverage.txt | head -1 | awk '{print $2}')
+        # X passed から分子(PASSED)を取得
+        PASSED=$(grep -oE "[0-9]+ passed" pytest-coverage.txt | tail -1 | awk '{print $1}')
+        
+        if [ -z "$PASSED" ]; then PASSED="0"; fi
+        if [ -z "$TOTAL" ]; then TOTAL="0"; fi
+        
+        echo "test_result=${PASSED}/${TOTAL} passed" >> $GITHUB_OUTPUT
+        echo "Stats: ${PASSED}/${TOTAL} passed, Coverage: ${COVERAGE}%"
 
     - name: Generate Coverage Badge
       uses: schneegans/dynamic-badges-action@v1.7.0
@@ -76,5 +70,15 @@ jobs:
         gistID: 2ee8e15cec07f3ec79161c23e9e0c25e
         filename: music-player-coverage.json
         label: coverage
-        message: ${{ steps.extract_coverage.outputs.percentage }}%
+        message: ${{ steps.extract_results.outputs.coverage }}%
         color: brightgreen
+
+    - name: Generate Tests Badge
+      uses: schneegans/dynamic-badges-action@v1.7.0
+      with:
+        auth: ${{ secrets.GIST_SECRET }}
+        gistID: 2ee8e15cec07f3ec79161c23e9e0c25e
+        filename: music-player-tests.json
+        label: tests
+        message: ${{ steps.extract_results.outputs.test_result }}
+        color: blue
