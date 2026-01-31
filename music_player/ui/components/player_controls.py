@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QLabel,
     QSlider,
+    QToolTip,
 )
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QSize, Signal, Qt
@@ -107,7 +108,9 @@ class PlayerControls(QWidget):
         # ★ 音量調整エリアの作成
         self.vol_label = QLabel("Vol:")
         self.vol_label.setStyleSheet("color: #888; font-size: 11px;")
-        self.volume_slider = QSlider(Qt.Horizontal)
+
+        # 修正箇所: QSlider から ClickableSlider に変更
+        self.volume_slider = ClickableSlider(Qt.Horizontal)
         self.volume_slider.setRange(0, 100)
         self.volume_slider.setValue(50)  # 初期値は安全な50%
         self.volume_slider.setFixedWidth(100)
@@ -118,8 +121,7 @@ class PlayerControls(QWidget):
         """
         )
 
-        # --- レイアウト組み立て（黄金比配置） ---
-        # 左側に大きな余白を作ってボタンを中央へ
+        # --- レイアウト組み立て ---
         self.button_layout.addStretch()
 
         # 中央：再生コントロール
@@ -128,7 +130,6 @@ class PlayerControls(QWidget):
         self.button_layout.addWidget(self.btn_toggle)
         self.button_layout.addWidget(self.btn_next)
 
-        # 中央と右端の間に余白
         self.button_layout.addStretch()
 
         # ★ 右端：ボリュームコントロール
@@ -142,6 +143,10 @@ class PlayerControls(QWidget):
         self.btn_stop.clicked.connect(self.stopClicked.emit)
         self.btn_next.clicked.connect(self.skipForwardClicked.emit)
         self.btn_prev.clicked.connect(self.skipBackwardClicked.emit)
+
+        # 追加: 各スライダーのホバーイベントを接続
+        self.slider.hoveredValue.connect(self._show_hover_time)
+        self.volume_slider.hoveredValue.connect(self._show_hover_volume)
 
     def update_position(self, position_ms, duration_ms):
         if not self.slider.isSliderDown():
@@ -169,3 +174,14 @@ class PlayerControls(QWidget):
             self.btn_toggle.setIcon(QIcon(icon_path))
         else:
             self.btn_toggle.setText("||" if icon_name == "pause" else ">")
+
+    # 追加: シークバーのツールチップ表示
+    def _show_hover_time(self, value_ms, global_pos):
+        if self.slider.maximum() > 0:
+            time_str = self._format_time(value_ms)
+            QToolTip.showText(global_pos, time_str, self.slider)
+
+    # 追加: ボリュームのツールチップ表示
+    def _show_hover_volume(self, value, global_pos):
+        """ホバー位置の音量をツールチップで表示"""
+        QToolTip.showText(global_pos, f"Vol: {value}%", self.volume_slider)
