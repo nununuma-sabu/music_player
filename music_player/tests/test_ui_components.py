@@ -119,3 +119,63 @@ def test_playlist_view_context_menu(qtbot):
 
     event = QContextMenuEvent(QContextMenuEvent.Mouse, QPoint(5, 5), QPoint(5, 5))
     view.contextMenuEvent(event)  # エラーが出ないことの確認
+
+
+from unittest.mock import patch
+from ui.components.player_controls import PlayerControls
+
+
+def test_clickable_slider_hover_signal(qtbot):
+    """ClickableSlider がマウス移動時に正しい値をシグナルで飛ばすか検証"""
+    slider = ClickableSlider(Qt.Horizontal)
+    slider.setRange(0, 100)
+    slider.resize(200, 20)
+    qtbot.addWidget(slider)
+
+    # シグナルをキャッチするための準備
+    with qtbot.waitSignal(slider.hoveredValue, timeout=1000) as blocker:
+        # スライダーの真ん中あたりをマウスが通ったと仮定
+        # (200px の幅で 100px の位置なら、値は 50 程度になるはず)
+        qtbot.mouseMove(slider, QPoint(100, 10))
+
+    value, pos = blocker.args
+    assert isinstance(value, int)
+    assert 0 <= value <= 100
+    assert isinstance(pos, QPoint)
+
+
+def test_player_controls_tooltip_logic(qtbot):
+    """PlayerControls がスライダーの値に応じて正しい文字列をツールチップに出すか検証"""
+    controls = PlayerControls()
+    qtbot.addWidget(controls)
+
+    # 1. 再生時間の表示ロジック (1分 = 60000ms)
+    with patch("PySide6.QtWidgets.QToolTip.showText") as mock_tooltip:
+        controls._show_hover_time(60000, QPoint(0, 0))
+        # "01:00" と表示されることを確認
+        mock_tooltip.assert_called_once()
+        args = mock_tooltip.call_args[0]
+        assert args[1] == "01:00"
+
+    # 2. 音量の表示ロジック
+    with patch("PySide6.QtWidgets.QToolTip.showText") as mock_tooltip:
+        controls._show_hover_volume(75, QPoint(0, 0))
+        # "Vol: 75%" と表示されることを確認
+        mock_tooltip.assert_called_once()
+        args = mock_tooltip.call_args[0]
+        assert args[1] == "Vol: 75%"
+
+
+def test_slider_jump_on_click(qtbot):
+    """スライダーの任意の位置をクリックした時に値が更新されるか検証"""
+    slider = ClickableSlider(Qt.Horizontal)
+    slider.setRange(0, 100)
+    slider.resize(200, 20)
+    slider.setValue(0)
+    qtbot.addWidget(slider)
+
+    # 中央(100px)をクリック
+    qtbot.mouseClick(slider, Qt.LeftButton, pos=QPoint(100, 10))
+
+    # 値が 0 以外（概ね 50 付近）にジャンプしているか
+    assert slider.value() > 0
