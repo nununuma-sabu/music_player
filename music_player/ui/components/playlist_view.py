@@ -68,7 +68,7 @@ class PlaylistView(QListWidget):
         delete_action.triggered.connect(lambda: self.songDeleted.emit(self.row(item)))
         menu.addAction(delete_action)
 
-        menu.exec(event.globalPos())
+        menu.popup(event.globalPos())
 
     def _on_item_double_clicked(self, item):
         file_path = item.data(Qt.UserRole)
