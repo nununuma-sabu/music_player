@@ -18,33 +18,24 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Music Player Portfolio")
         self.resize(800, 600)
 
-        # アプリケーションアイコンの設定
         icon_path = get_asset_path("styles/icons/app_icon.png")
         self.setWindowIcon(QIcon(icon_path))
 
-        # 1. ロジック・データ管理の初期化
         self.playlist_manager = PlaylistManager()
         self.engine = AudioEngine()
 
-        # 2. UIコンポーネントの構築
         self._init_ui()
-
-        # 3. スタイルの適用
         self._apply_styles()
-
-        # 4. シグナルとスロットの接続
         self._setup_connections()
 
     def _init_ui(self):
-        """UIの配置とレイアウト構築を担当"""
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
 
-        # タブウィジェット
         self.tabs = QTabWidget()
 
-        # --- Playlist タブ ---
+        # Playlist タブ
         self.playlist_container = QWidget()
         self.playlist_layout = QVBoxLayout(self.playlist_container)
         self.drop_zone = DropZone()
@@ -52,7 +43,7 @@ class MainWindow(QMainWindow):
         self.playlist_layout.addWidget(self.drop_zone)
         self.playlist_layout.addWidget(self.playlist_view)
 
-        # --- Equalizer タブ ---
+        # Equalizer タブ
         self.eq_container = QWidget()
         self.eq_container.setObjectName("eqContainer")
         self.eq_container.setAttribute(Qt.WA_StyledBackground)
@@ -81,15 +72,11 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.playlist_container, "Playlist")
         self.tabs.addTab(self.eq_container, "Equalizer")
 
-        # コントロールバー
         self.controls = PlayerControls()
-
-        # メイン配置
         self.main_layout.addWidget(self.tabs)
         self.main_layout.addWidget(self.controls)
 
     def _apply_styles(self):
-        """強制スタイリングの一括管理"""
         self.tabs.setStyleSheet(
             """
             QTabWidget::pane { border: none; background-color: #121212; top: -1px; }
@@ -100,130 +87,85 @@ class MainWindow(QMainWindow):
         """
         )
         self.eq_container.setStyleSheet(
-            """
-            #eqContainer { background-color: #121212; }
-            QWidget { background-color: transparent; }
-        """
+            "#eqContainer { background-color: #121212; } QWidget { background-color: transparent; }"
         )
 
     def _setup_connections(self):
-        """UIとエンジン、各コンポーネント間の連携を定義"""
-        # ファイルドロップ連携
         self.drop_zone.filesDropped.connect(self._on_files_dropped)
         self.playlist_view.songSelected.connect(self._on_song_selected)
+        self.playlist_view.songDeleted.connect(self._on_delete_song)
 
-        # プレイヤーコントロール -> エンジン
         self.controls.playPauseClicked.connect(self.engine.toggle_play)
         self.controls.stopClicked.connect(self.engine.player.stop)
         self.controls.seekRequested.connect(self.engine.set_position)
 
-        # 修正ポイント: 進む・戻るボタンのシグナルを接続
+        # 進む・戻るボタンの接続
         self.controls.skipForwardClicked.connect(self._play_next_song)
         self.controls.skipBackwardClicked.connect(self._play_prev_song)
 
-        # エンジン -> UI状態同期
         self.engine.state_changed.connect(self.controls.update_playback_icons)
         self.engine.position_changed.connect(self._on_position_changed)
         self.engine.duration_changed.connect(self.controls.set_duration)
-
-        # 音量スライダーの変更をエンジンに伝える
-        self.controls.volume_slider.valueChanged.connect(self.engine.set_volume)
-
-        # ★ 起動時のスライダー値をエンジンに即時反映させる
-        self.engine.set_volume(self.controls.volume_slider.value())
-
-        # Deleteキー・右クリック共通の削除処理を接続
-        self.playlist_view.songDeleted.connect(self._on_delete_song)
-
-        # メディア状態の監視を接続
         self.engine.media_status_changed.connect(self._on_media_status_changed)
 
+        self.controls.volume_slider.valueChanged.connect(self.engine.set_volume)
+        self.engine.set_volume(self.controls.volume_slider.value())
+
     def _on_files_dropped(self, files):
-        """ファイルが選択・ドロップされた時の処理"""
         if not files:
             return
-
-        # 今回追加された曲の中の「最初の有効な曲」を即再生するためのフラグ
-        first_valid_metadata = None
-        # 追加前のプレイリストの末尾インデックスを保持
         start_row = self.playlist_view.count()
+        first_valid_metadata = None
 
         for f in files:
             metadata = extract_metadata(f)
             if metadata:
                 self.playlist_manager.add_song(metadata)
                 self.playlist_view.add_song_item(metadata)
-                # 最初に読み込みに成功した曲を保持しておく
                 if first_valid_metadata is None:
                     first_valid_metadata = metadata
 
-        # 仕様に基づき、選択された楽曲の1曲目を即再生する
         if first_valid_metadata:
-            self.engine.load_song(first_valid_metadata["file_path"])
-            self.controls.update_song_info(
-                first_valid_metadata["title"], first_valid_metadata["artist"]
-            )
-            # UI側のハイライトを追加された曲の先頭に合わせる
+            self._play_song_at_path(first_valid_metadata["file_path"])
             self.playlist_view.setCurrentRow(start_row)
 
     def _on_song_selected(self, file_path):
-        """プレイリストで曲が選択された時の処理"""
+        self._play_song_at_path(file_path)
+
+    def _play_song_at_path(self, file_path):
+        """再生とUI更新の共通処理"""
         metadata = extract_metadata(file_path)
         if metadata:
             self.engine.load_song(file_path)
             self.controls.update_song_info(metadata["title"], metadata["artist"])
 
-    def _on_position_changed(self, position):
-        """再生位置が変更された時のUI更新"""
-        self.controls.update_position(position, self.engine.player.duration())
-
-    def _on_delete_song(self, index):
-        """プレイリストから曲を削除する処理"""
-        # 1. データモデルから削除
-        removed_song = self.playlist_manager.remove_song(index)
-
-        if removed_song:
-            # 2. UI表示（QListWidget）から削除
-            self.playlist_view.takeItem(index)
-
-            # 3. 削除した曲が今再生中の曲だった場合の処理（任意）
-            # 必要に応じて停止させる、あるいは次の曲へ移るロジックを追加できます
-            print(f"Deleted: {removed_song.get('title')}")
-
     def _on_media_status_changed(self, status):
-        """再生終了を検知して次の曲へ"""
         if status == QMediaPlayer.MediaStatus.EndOfMedia:
             self._play_next_song()
 
     def _play_next_song(self):
-        """プレイリストの次の曲を再生するロジック（ループ対応）"""
         count = self.playlist_view.count()
         if count == 0:
             return
-
-        current_row = self.playlist_view.currentRow()
-        # リストの末尾なら最初に戻る
-        next_row = (current_row + 1) % count
+        next_row = (self.playlist_view.currentRow() + 1) % count
         self._play_at_index(next_row)
 
     def _play_prev_song(self):
-        """プレイリストの前の曲を再生するロジック（ループ対応）"""
         count = self.playlist_view.count()
         if count == 0:
             return
-
-        current_row = self.playlist_view.currentRow()
-        # リストの先頭なら最後に戻る
-        prev_row = (current_row - 1 + count) % count
+        prev_row = (self.playlist_view.currentRow() - 1 + count) % count
         self._play_at_index(prev_row)
 
     def _play_at_index(self, index):
-        """共通のインデックス指定再生処理"""
         self.playlist_view.setCurrentRow(index)
         item = self.playlist_view.item(index)
         if item:
-            file_path = item.data(Qt.UserRole)
-            metadata = extract_metadata(file_path)
-            if metadata:
-                self.engine.load_song(file_path)
-                self.controls.update_song_info(metadata["title"], metadata["artist"])
+            self._play_song_at_path(item.data(Qt.UserRole))
+
+    def _on_delete_song(self, index):
+        self.playlist_manager.remove_song(index)
+        self.playlist_view.takeItem(index)
+
+    def _on_position_changed(self, position):
+        self.controls.update_position(position, self.engine.player.duration())

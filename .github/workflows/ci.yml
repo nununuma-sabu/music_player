@@ -43,18 +43,21 @@ jobs:
         pip install PySide6 pytest pytest-qt pytest-cov mutagen
 
     - name: Run tests with coverage
+      env:
+        QT_QPA_PLATFORM: offscreen
+        PYTHONPATH: .
+      # 実際のソースコードがあるディレクトリで実行するように合わせます
+      working-directory: ./music_player
       run: |
-        export QT_QPA_PLATFORM=offscreen
-        # 制御コードを排除してテキスト抽出を確実にする
-        python3 -m pytest --color=no --cov=music_player/core --cov=music_player/ui music_player/tests/ --cov-report=term-missing | tee pytest-coverage.txt
+        # インポートパスに合わせて --cov の対象とテストディレクトリを調整
+        python3 -m pytest --color=no --cov=core --cov=ui tests/ --cov-report=term-missing | tee ../pytest-coverage.txt
 
     - name: Extract Coverage Percentage
       id: extract_coverage
       run: |
-        # Total行から数値を抽出（大文字小文字・余計な空白を無視）
+        # ルートディレクトリに出力された pytest-coverage.txt を読み込み
         COVERAGE=$(grep -i "^TOTAL" pytest-coverage.txt | grep -oE "[0-9]+%" | head -1 | tr -d '%')
         
-        # 抽出失敗時のガード
         if [ -z "$COVERAGE" ]; then COVERAGE="0"; fi
         
         echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
