@@ -130,13 +130,13 @@ def test_clickable_slider_hover_signal(qtbot):
     slider = ClickableSlider(Qt.Horizontal)
     slider.setRange(0, 100)
     slider.resize(200, 20)
-    slider.show()  # ウィジェットを可視化
+    # CI環境（xvfb等）でイベントを確実に届けるため、表示して描画を待機
+    slider.show()
     qtbot.addWidget(slider)
-    qtbot.waitExposed(slider)  # 描画準備ができるまで待機
+    qtbot.waitExposed(slider)
 
-    # タイムアウトを少し長めに設定してシグナルを待機
+    # タイムアウトを少し伸ばしてシグナルを待機
     with qtbot.waitSignal(slider.hoveredValue, timeout=2000) as blocker:
-        # スライダーの中央付近にマウスを移動
         qtbot.mouseMove(slider, QPoint(100, 10))
 
     value, pos = blocker.args
@@ -150,36 +150,39 @@ def test_player_controls_tooltip_logic(qtbot):
     controls = PlayerControls()
     qtbot.addWidget(controls)
 
-    # 【重要】スライダーに範囲を持たせないと、ガード節により表示処理がスキップされる
+    # 実装側の `maximum() > 0` 判定を通すために範囲を設定
     controls.slider.setRange(0, 100000)
     controls.volume_slider.setRange(0, 100)
 
     # 1. 再生時間の表示ロジック (1分 = 60000ms)
-    # パッチ対象をインポート先のモジュール名に合わせる
+    # パッチ対象を「利用されている場所」に変更
     with patch("ui.components.player_controls.QToolTip.showText") as mock_tooltip:
         controls._show_hover_time(60000, QPoint(10, 10))
+        # メソッドが呼ばれたことを確認
         mock_tooltip.assert_called_once()
+        # 第2引数の文字列がフォーマットされているか検証
         args = mock_tooltip.call_args[0]
         assert args[1] == "01:00"
 
     # 2. 音量の表示ロジック
     with patch("ui.components.player_controls.QToolTip.showText") as mock_tooltip:
-        controls._show_hover_volume(75, QPoint(20, 20))
+        controls._show_hover_volume(50, QPoint(20, 20))
         mock_tooltip.assert_called_once()
         args = mock_tooltip.call_args[0]
-        assert args[1] == "Vol: 75%"
+        assert args[1] == "Vol: 50%"
 
 
 def test_slider_jump_on_click(qtbot):
-    """スライダーの任意の位置をクリックした時に値が更新されるか検証"""
+    """スライダーをクリックした時に値がジャンプするか検証"""
     slider = ClickableSlider(Qt.Horizontal)
     slider.setRange(0, 100)
     slider.resize(200, 20)
     slider.setValue(0)
+    slider.show()
     qtbot.addWidget(slider)
+    qtbot.waitExposed(slider)
 
-    # 中央(100px)をクリック
+    # 中央をクリック
     qtbot.mouseClick(slider, Qt.LeftButton, pos=QPoint(100, 10))
-
-    # 値が 0 以外（概ね 50 付近）にジャンプしているか
+    # 値が初期値の 0 から更新されているか確認
     assert slider.value() > 0
